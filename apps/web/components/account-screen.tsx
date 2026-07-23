@@ -151,7 +151,7 @@ export function AccountScreen() {
 
   return <main className="account-page">
     <div className="create-ambient"/>
-    <header className="create-nav"><Link href="/"><Logo/></Link><Link href="/"><ArrowLeft/> Back to events</Link></header>
+    <header className="create-nav"><Link href="/"><Logo/></Link><Link className="account-back-button" href="/"><ArrowLeft/> Back to events</Link></header>
     <section className="account-shell">
       {loading && !profile ? <div className="admin-empty"><LoaderCircle className="spin"/> Loading account…</div> :
        !profile ? <div className="account-required"><UserRound/><h1>Account required</h1><p>{error}</p><Link href="/login">Sign in or create account</Link></div> :

@@ -202,7 +202,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
       </div>
       <div className="tags">{event.tags.map(tag => <span key={tag}>#{tag.replaceAll(" ", "")}</span>)}</div>
       <a className="event-open" href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>View official event <ExternalLink/></a>
-      <div className="social-proof"><span><b>{compact.format(interestCount)}</b> interested</span><span className="dot">•</span><span>{comments.length} comments</span></div>
+      <div className="engagement-summary"><div className="event-reaction-counts" aria-label="Event reactions"><span title="Like">👍 <b>{eventReactions.like}</b></span><span title="Love">❤️ <b>{eventReactions.love}</b></span><span title="Wow">😮 <b>{eventReactions.wow}</b></span></div><div className="social-proof"><span><b>{compact.format(interestCount)}</b> interested</span><span className="dot">•</span><span>{comments.length} comments</span></div></div>
     </div>
     <div className="card-actions">
       <motion.button whileTap={{ scale: .94 }} className={interested ? "active" : ""} onClick={toggleInterested}><Heart fill={interested ? "currentColor" : "none"} /> <span>{interested ? "Interested" : "I'm interested"}</span></motion.button>
