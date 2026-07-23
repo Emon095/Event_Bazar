@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, Camera, Download, Globe2, GraduationCap, LoaderCircle, MapPin, Pencil, Save, UserRound } from "lucide-react";
+import { ArrowLeft, CalendarDays, Camera, Download, Globe2, GraduationCap, LoaderCircle, MapPin, Pencil, Save, Trash2, UserRound, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -26,6 +26,8 @@ export function AccountScreen() {
   const [uploading, setUploading] = useState(false);
   const [tab, setTab] = useState<"posts" | "about">("posts");
   const [postedEvents, setPostedEvents] = useState<PostedEvent[]>([]);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [busyEventId, setBusyEventId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data, error: authError }) => {
@@ -94,6 +96,47 @@ export function AccountScreen() {
     }
   }
 
+  async function updateEvent(event: FormEvent<HTMLFormElement>, item: PostedEvent) {
+    event.preventDefault();
+    setBusyEventId(item.id); setError("");
+    const values = new FormData(event.currentTarget);
+    const startsAt = new Date(`${String(values.get("starts_at"))}T00:00:00`);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Please sign in again.");
+      const changes = {
+        title: String(values.get("title") || "").trim(),
+        short_description: String(values.get("short_description") || "").trim(),
+        starts_at: startsAt.toISOString(),
+        location: String(values.get("location") || "").trim() || "Worldwide",
+        format: String(values.get("format") || "Online"),
+        banner_url: String(values.get("banner_url") || "").trim() || null,
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error: updateError } = await supabase.from("events").update(changes).eq("id", item.id).eq("creator_id", auth.user.id).select("id,slug,title,short_description,starts_at,location,format,banner_url,categories(name)").single();
+      if (updateError) throw updateError;
+      setPostedEvents(current => current.map(post => post.id === item.id ? data as PostedEvent : post));
+      setEditingEventId(null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not update this event.");
+    } finally { setBusyEventId(null); }
+  }
+
+  async function deleteEvent(item: PostedEvent) {
+    if (!window.confirm(`Delete “${item.title}”? This also removes its comments, reactions, and saves. This cannot be undone.`)) return;
+    setBusyEventId(item.id); setError("");
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Please sign in again.");
+      const { error: deleteError } = await supabase.from("events").delete().eq("id", item.id).eq("creator_id", auth.user.id);
+      if (deleteError) throw deleteError;
+      setPostedEvents(current => current.filter(post => post.id !== item.id));
+      if (editingEventId === item.id) setEditingEventId(null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not delete this event.");
+    } finally { setBusyEventId(null); }
+  }
+
   function downloadText() {
     if (!profile) return;
     const text = [
@@ -133,7 +176,7 @@ export function AccountScreen() {
           <div><small>VARSITY / INSTITUTE</small><b>{profile.institution || "Not added"}</b></div><div><small>LOCATION</small><b>{profile.location || "Not added"}</b></div>
           <div><small>SKILLS / INTERESTS</small><b>{profile.skills || "Not added"}</b></div><div><small>WEBSITE</small><b>{profile.website_url || "Not added"}</b></div>
           <article><small>BIO</small><p>{profile.bio || "Add a bio to introduce yourself to the Event Bazar community."}</p></article>
-        </div> : <div className="account-feed-layout"><aside className="profile-intro-card"><h2>Intro</h2><p>{profile.bio || "Add a bio to introduce yourself to the Event Bazar community."}</p>{profile.institution&&<span><GraduationCap/>{profile.institution}</span>}{profile.location&&<span><MapPin/>{profile.location}</span>}{profile.website_url&&<a href={profile.website_url} target="_blank" rel="noopener noreferrer"><Globe2/>{profile.website_url}</a>}<b>{postedEvents.length} published {postedEvents.length===1?"event":"events"}</b></aside><section className="account-post-feed"><h2>Event posts</h2>{postedEvents.length?postedEvents.map(item=>{const category=Array.isArray(item.categories)?item.categories[0]:item.categories;return <article className="account-event-post" key={item.id}>{item.banner_url&&<Image src={item.banner_url} alt="" width={700} height={300} unoptimized/>}<div><span>{category?.name||"Event"} · {item.format}</span><h3>{item.title}</h3><p>{item.short_description}</p><footer><small><CalendarDays/>{new Date(item.starts_at).toLocaleDateString()}</small><small><MapPin/>{item.location}</small><Link href={`/events/${item.slug}`}>View event</Link></footer></div></article>}):<div className="panel-empty"><CalendarDays/><b>No event posts yet</b><p>Events you publish will appear in this profile feed.</p><Link href="/create-event">Create an event</Link></div>}</section></div>}</>}
+        </div> : <div className="account-feed-layout"><aside className="profile-intro-card"><h2>Intro</h2><p>{profile.bio || "Add a bio to introduce yourself to the Event Bazar community."}</p>{profile.institution&&<span><GraduationCap/>{profile.institution}</span>}{profile.location&&<span><MapPin/>{profile.location}</span>}{profile.website_url&&<a href={profile.website_url} target="_blank" rel="noopener noreferrer"><Globe2/>{profile.website_url}</a>}<b>{postedEvents.length} published {postedEvents.length===1?"event":"events"}</b></aside><section className="account-post-feed"><div className="account-feed-title"><h2>Event posts</h2><Link href="/create-event">+ Add event</Link></div>{postedEvents.length?postedEvents.map(item=>{const category=Array.isArray(item.categories)?item.categories[0]:item.categories;const isEditing=editingEventId===item.id;return <article className="account-event-post" key={item.id}>{item.banner_url&&!isEditing&&<Image src={item.banner_url} alt="" width={700} height={300} unoptimized/>}{isEditing?<form className="account-event-edit" onSubmit={event=>void updateEvent(event,item)}><div className="event-edit-heading"><h3>Edit event</h3><button type="button" onClick={()=>setEditingEventId(null)}><X/> Cancel</button></div><label><span>Title</span><input name="title" defaultValue={item.title} minLength={4} maxLength={180} required/></label><label><span>Short description</span><textarea name="short_description" defaultValue={item.short_description} minLength={20} maxLength={400} rows={4} required/></label><div><label><span>Start date</span><input type="date" name="starts_at" defaultValue={item.starts_at.slice(0,10)} required/></label><label><span>Format</span><select name="format" defaultValue={item.format}><option>Online</option><option>Offline</option><option>Hybrid</option></select></label></div><label><span>Location</span><input name="location" defaultValue={item.location}/></label><label><span>Banner image URL</span><input type="url" name="banner_url" defaultValue={item.banner_url||""}/></label><button className="event-edit-save" disabled={busyEventId===item.id}><Save/>{busyEventId===item.id?"Saving…":"Save changes"}</button></form>:<div><div className="event-owner-actions"><span>{category?.name||"Event"} · {item.format}</span><div><button onClick={()=>setEditingEventId(item.id)}><Pencil/> Edit</button><button className="delete" disabled={busyEventId===item.id} onClick={()=>void deleteEvent(item)}>{busyEventId===item.id?<LoaderCircle className="spin"/>:<Trash2/>} Delete</button></div></div><h3>{item.title}</h3><p>{item.short_description}</p><footer><small><CalendarDays/>{new Date(item.starts_at).toLocaleDateString()}</small><small><MapPin/>{item.location}</small><Link href={`/events/${item.slug}`}>View event</Link></footer></div>}</article>}):<div className="panel-empty"><CalendarDays/><b>No event posts yet</b><p>Events you publish will appear in this profile feed.</p><Link href="/create-event">Create an event</Link></div>}</section></div>}</>}
     </section>
   </main>;
 }
