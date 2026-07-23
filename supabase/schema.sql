@@ -129,6 +129,7 @@ alter table public.notifications enable row level security;
 alter table public.categories enable row level security;
 
 create policy "Public profiles are readable" on public.profiles for select using (true);
+create policy "Users create their profile" on public.profiles for insert to authenticated with check (auth.uid() = id);
 create policy "Users update their profile" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
 create policy "Categories are readable" on public.categories for select using (true);
 create policy "Published events are readable" on public.events for select using (status = 'published');

@@ -77,6 +77,12 @@ to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
+drop policy if exists "Users create their profile" on public.profiles;
+create policy "Users create their profile"
+on public.profiles for insert
+to authenticated
+with check (auth.uid() = id);
+
 -- Create profiles for any Auth users that existed before the trigger was repaired.
 insert into public.profiles (id, name, email, avatar_url)
 select

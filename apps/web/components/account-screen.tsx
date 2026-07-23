@@ -23,9 +23,25 @@ export function AccountScreen() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data, error: authError }) => {
       if (authError || !data.user) throw new Error("Please sign in to open your account.");
-      const { data: row, error } = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
+      const { data: row, error } = await supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
       if (error) throw error;
-      setProfile(row as Profile);
+      if (row) {
+        setProfile(row as Profile);
+        return;
+      }
+      const metadata = data.user.user_metadata;
+      setProfile({
+        id: data.user.id,
+        name: metadata.full_name || metadata.name || data.user.email?.split("@")[0] || "Event Bazar Member",
+        email: data.user.email || "",
+        avatar_url: metadata.avatar_url || metadata.picture || null,
+        bio: null,
+        institution: null,
+        website_url: null,
+        location: null,
+        skills: null,
+        is_admin: false,
+      });
     }).catch(reason => setError(reason.message)).finally(() => setLoading(false));
   }, [supabase]);
 
@@ -36,7 +52,11 @@ export function AccountScreen() {
     try {
       const { data:userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Please sign in again.");
-      const { data, error } = await supabase.from("profiles").update(payload).eq("id", userData.user.id).select().single();
+      const { data, error } = await supabase.from("profiles").upsert({
+        id: userData.user.id,
+        email: userData.user.email || "",
+        ...payload,
+      }).select().single();
       if (error) throw error;
       setProfile(data as Profile); localStorage.setItem("event-bazar-user", JSON.stringify(data)); setEditing(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save profile."); }
