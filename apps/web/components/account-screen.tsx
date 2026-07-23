@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Download, LoaderCircle, Pencil, Save, UserRound } from "lucide-react";
+import { ArrowLeft, Camera, Download, LoaderCircle, Pencil, Save, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -19,6 +19,7 @@ export function AccountScreen() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data, error: authError }) => {
@@ -62,6 +63,30 @@ export function AccountScreen() {
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save profile."); }
     finally { setLoading(false); }
   }
+  async function uploadAvatar(file: File) {
+    if (!profile) return;
+    if (!file.type.startsWith("image/")) { setError("Choose a JPG, PNG, WebP, or GIF image."); return; }
+    if (file.size > 5 * 1024 * 1024) { setError("Profile pictures must be 5 MB or smaller."); return; }
+    setUploading(true); setError("");
+    try {
+      const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const path = `${profile.id}/avatar.${extension}`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      const avatarUrl = `${data.publicUrl}?v=${Date.now()}`;
+      const { error: updateError } = await supabase.from("profiles").update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() }).eq("id", profile.id);
+      if (updateError) throw updateError;
+      const next = { ...profile, avatar_url: avatarUrl };
+      setProfile(next);
+      localStorage.setItem("event-bazar-user", JSON.stringify(next));
+      window.dispatchEvent(new Event("event-bazar-auth-changed"));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not upload profile picture.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function downloadText() {
     if (!profile) return;
@@ -82,7 +107,7 @@ export function AccountScreen() {
       {loading && !profile ? <div className="admin-empty"><LoaderCircle className="spin"/> Loading account…</div> :
        !profile ? <div className="account-required"><UserRound/><h1>Account required</h1><p>{error}</p><Link href="/login">Sign in or create account</Link></div> :
        <><div className="account-profile-head">
-          <div className="profile-picture">{profile.avatar_url ? <Image src={profile.avatar_url} alt={profile.name} width={164} height={164} unoptimized/> : <UserRound/>}</div>
+          <div className="profile-picture">{profile.avatar_url ? <Image src={profile.avatar_url} alt={profile.name} width={164} height={164} unoptimized/> : <UserRound/>}<label className="avatar-upload" title="Upload profile picture"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={change => {const file=change.target.files?.[0];if(file)void uploadAvatar(file);change.target.value="";}}/>{uploading ? <LoaderCircle className="spin"/> : <Camera/>}</label></div>
           <div><small>{profile.is_admin ? "ADMIN ACCOUNT" : "EVENT BAZAR MEMBER"}</small><h1>{profile.name}</h1><p>{profile.email}</p></div>
           <div className="profile-tools"><button onClick={() => setEditing(value => !value)}><Pencil/> {editing ? "Cancel" : "Edit"}</button><button onClick={downloadText}><Download/> TXT</button></div>
         </div>
@@ -91,7 +116,7 @@ export function AccountScreen() {
           <label><span>Name *</span><input name="name" defaultValue={profile.name} minLength={2} required/></label>
           <label><span>Email</span><input value={profile.email} disabled/></label>
           <label><span>Varsity / institute</span><input name="institution" defaultValue={profile.institution || ""} placeholder="Your university, school, or company"/></label>
-          <label><span>Profile picture URL</span><input type="url" name="avatar_url" defaultValue={profile.avatar_url || ""} placeholder="https://…"/></label>
+          <label><span>Profile picture URL</span><input type="url" name="avatar_url" defaultValue={profile.avatar_url || ""} placeholder="Upload above or enter https://…"/></label>
           <label><span>Location</span><input name="location" defaultValue={profile.location || ""} placeholder="Dhaka, Bangladesh"/></label>
           <label><span>Website</span><input type="url" name="website_url" defaultValue={profile.website_url || ""} placeholder="https://…"/></label>
           <label className="wide"><span>Skills / interests</span><input name="skills" defaultValue={profile.skills || ""} placeholder="CTF, Python, AI, competitive programming"/></label>

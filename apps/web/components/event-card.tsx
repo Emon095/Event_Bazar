@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bookmark, CalendarDays, Check, Clock3, ExternalLink, Globe2, Heart, MapPin, MessageCircle, MoreHorizontal, Send, Share2, Sparkles, Trophy, UsersRound } from "lucide-react";
+import { Bookmark, CalendarDays, Check, Clock3, ExternalLink, Globe2, Heart, MapPin, MessageCircle, MoreHorizontal, Pencil, Send, Share2, Sparkles, Trash2, Trophy, UsersRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { categoryStyle } from "@/lib/data";
 import type { EventItem } from "@/lib/types";
@@ -20,7 +20,10 @@ interface EventComment {
   body: string;
   created_at: string;
   authorName: string;
+  avatarUrl: string | null;
 }
+type ReactionName = "like" | "love" | "helpful";
+type ReactionSummary = Record<ReactionName, number> & { mine: ReactionName[] };
 
 export function EventCard({ event, index }: { event: EventItem; index: number }) {
   const [supabase] = useState(() => createClient());
@@ -33,6 +36,9 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
   const [interestCount, setInterestCount] = useState(0);
   const [comments, setComments] = useState<EventComment[]>([]);
   const [replyingTo, setReplyingTo] = useState<EventComment | null>(null);
+  const [editingComment, setEditingComment] = useState<EventComment | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [reactions, setReactions] = useState<Record<number, ReactionSummary>>({});
   const style = categoryStyle[event.category];
   const date = new Date(event.startsAt);
   const href = event.officialUrl ?? `/events/${event.slug}`;
@@ -60,15 +66,34 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
       }
       const authorIds = [...new Set((rows ?? []).map(row => row.author_id))];
       const { data: profiles } = authorIds.length
-        ? await supabase.from("profiles").select("id,name").in("id", authorIds)
+        ? await supabase.from("profiles").select("id,name,avatar_url").in("id", authorIds)
         : { data: [] };
-      const names = new Map((profiles ?? []).map(profile => [profile.id, profile.name]));
-      setComments((rows ?? []).map(row => ({ ...row, authorName: names.get(row.author_id) ?? "Event Bazar user" })));
+      const profileMap = new Map((profiles ?? []).map(profile => [profile.id, profile]));
+      const mapped = (rows ?? []).map(row => ({
+        ...row,
+        authorName: profileMap.get(row.author_id)?.name ?? "Event Bazar user",
+        avatarUrl: profileMap.get(row.author_id)?.avatar_url ?? null,
+      }));
+      setComments(mapped);
+      const commentIds = mapped.map(row => row.id);
+      const { data: reactionRows } = commentIds.length
+        ? await supabase.from("event_comment_reactions").select("comment_id,user_id,reaction").in("comment_id", commentIds)
+        : { data: [] };
+      const summary: Record<number, ReactionSummary> = {};
+      for (const row of reactionRows ?? []) {
+        const item = summary[row.comment_id] ?? { like: 0, love: 0, helpful: 0, mine: [] };
+        const reaction = row.reaction as ReactionName;
+        item[reaction] += 1;
+        if (row.user_id === id) item.mine.push(reaction);
+        summary[row.comment_id] = item;
+      }
+      setReactions(summary);
     }
     void refreshEngagement();
     const channel = supabase.channel(`engagement:${event.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "event_interests", filter: `event_key=eq.${event.id}` }, refreshEngagement)
       .on("postgres_changes", { event: "*", schema: "public", table: "event_comments", filter: `event_key=eq.${event.id}` }, refreshEngagement)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_comment_reactions" }, refreshEngagement)
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [event.id, supabase]);
@@ -103,6 +128,21 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     const url = external ? href : location.origin + href;
     if (navigator.share) await navigator.share({ title: event.title, url }).catch(() => undefined);
     else await navigator.clipboard.writeText(url);
+  };
+  const deleteComment = async (item: EventComment) => {
+    if (item.author_id !== userId || !window.confirm("Delete this comment and its replies?")) return;
+    await supabase.from("event_comments").delete().eq("id", item.id).eq("author_id", userId);
+  };
+  const saveCommentEdit = async () => {
+    if (!editingComment || editingComment.author_id !== userId || !editBody.trim()) return;
+    const { error } = await supabase.from("event_comments").update({ body: editBody.trim(), updated_at: new Date().toISOString() }).eq("id", editingComment.id).eq("author_id", userId);
+    if (!error) { setEditingComment(null); setEditBody(""); }
+  };
+  const toggleReaction = async (commentId: number, reaction: ReactionName) => {
+    if (!userId) { window.location.href = publicPath("/login"); return; }
+    const active = reactions[commentId]?.mine.includes(reaction);
+    if (active) await supabase.from("event_comment_reactions").delete().eq("comment_id", commentId).eq("user_id", userId).eq("reaction", reaction);
+    else await supabase.from("event_comment_reactions").upsert({ comment_id: commentId, user_id: userId, reaction });
   };
 
   return <motion.article className={`event-card category-${event.category.toLowerCase()}`} initial={{ opacity: 0, y: 28, scale: .985 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: "-60px" }} whileHover={{ y: -4 }} transition={{ delay: Math.min(index * .045, .22), duration: .48, ease: "easeOut" }}>
@@ -145,8 +185,11 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     <AnimatePresence>{commenting && <motion.div className="comment-panel" initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}}>
       {comments.length > 0 && <div className="comment-list">
         {comments.map(item => <div className={`comment-item ${item.parent_id ? "reply" : ""}`} key={item.id}>
-          <span className="avatar blue">{item.authorName.split(/\s+/).map(part => part[0]).join("").slice(0,2).toUpperCase()}</span>
-          <div><b>{item.authorName}</b><p>{item.body}</p><button type="button" onClick={() => { setReplyingTo(item); setComment(""); }}>Reply</button></div>
+          <span className="avatar blue">{item.avatarUrl ? <Image src={item.avatarUrl} alt="" width={32} height={32} unoptimized/> : item.authorName.split(/\s+/).map(part => part[0]).join("").slice(0,2).toUpperCase()}</span>
+          <div><b>{item.authorName}</b>{editingComment?.id === item.id ? <div className="comment-edit"><input value={editBody} onChange={change => setEditBody(change.target.value)}/><button type="button" onClick={saveCommentEdit}>Save</button><button type="button" onClick={() => setEditingComment(null)}>Cancel</button></div> : <p>{item.body}</p>}
+            <div className="comment-controls"><button type="button" onClick={() => { setReplyingTo(item); setComment(""); }}>Reply</button>{item.author_id === userId && <><button type="button" onClick={() => {setEditingComment(item);setEditBody(item.body);}}><Pencil/> Edit</button><button type="button" className="danger" onClick={() => deleteComment(item)}><Trash2/> Delete</button></>}</div>
+            <div className="comment-reactions"><button type="button" className={reactions[item.id]?.mine.includes("like") ? "active" : ""} onClick={() => toggleReaction(item.id,"like")}>👍 {reactions[item.id]?.like || ""}</button><button type="button" className={reactions[item.id]?.mine.includes("love") ? "active" : ""} onClick={() => toggleReaction(item.id,"love")}>❤️ {reactions[item.id]?.love || ""}</button><button type="button" className={reactions[item.id]?.mine.includes("helpful") ? "active" : ""} onClick={() => toggleReaction(item.id,"helpful")}>💡 {reactions[item.id]?.helpful || ""}</button></div>
+          </div>
         </div>)}
       </div>}
       {replyingTo && <div className="replying-to">Replying to <b>{replyingTo.authorName}</b><button type="button" onClick={() => setReplyingTo(null)}>×</button></div>}
