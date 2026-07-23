@@ -21,8 +21,13 @@ interface CommunityEvent {
 function hash(value: string) { return [...value].reduce((sum, character) => sum + character.charCodeAt(0), 0); }
 
 export async function fetchUpcoming(): Promise<{ events: EventItem[]; status: Record<string, SourceStatus> }> {
+  const staticFeeds = process.env.NEXT_PUBLIC_STATIC_FEEDS === "true";
   const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-  const response = await fetch(`${base}/sources/upcoming`, { headers: { Accept: "application/json" } });
+  const endpoint = staticFeeds ? "/data/upcoming.json" : `${base}/sources/upcoming`;
+  const response = await fetch(endpoint, {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
   if (!response.ok) throw new Error(`Event API returned ${response.status}`);
   const payload = await response.json() as UpcomingResponse;
   return {
