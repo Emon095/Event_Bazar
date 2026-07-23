@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, BriefcaseBusiness, Code2, Heart, Home, LogIn, MessageCircle, Moon, Plus, Search, ShieldCheck, Sparkles, Sun, UserRound, X, Zap } from "lucide-react";
+import { Bell, BriefcaseBusiness, Code2, Heart, Home, LogIn, LogOut, MessageCircle, Moon, Plus, Search, ShieldCheck, Sparkles, Sun, UserRound, X, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -147,7 +147,7 @@ export function AppShell() {
       <div className="neo-actions">
         <button onClick={toggleTheme} aria-label="Change color theme">{theme === "dark" ? <Sun/> : <Moon/>}</button>
         <button onClick={() => void openNotifications()} aria-label="Notifications" className="bell"><Bell/>{notifications.some(item=>!item.read_at)&&<i>{notifications.filter(item=>!item.read_at).length}</i>}</button>
-        <button onClick={() => void openNotifications()} aria-label="Activity" className="web-activity"><Heart/>{notifications.some(item=>!item.read_at)&&<i/>}</button>
+        <button onClick={() => void signOut()} aria-label="Log out" title="Log out" className="web-activity"><LogOut/></button>
         <button onClick={() => setPanel(panel === "account" ? null : "account")} aria-label="Account" className="account-orb">{account?.avatarUrl ? <Image src={account.avatarUrl} alt={account.name} width={39} height={39} unoptimized/> : account?.initials || <UserRound/>}</button>
       </div>
     </header>
