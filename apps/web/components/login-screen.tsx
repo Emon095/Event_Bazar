@@ -35,9 +35,12 @@ export function LoginScreen() {
     try {
       const result = mode === "register"
         ? await supabase.auth.signUp({
-            email: payload.email,
-            password: payload.password,
-            options: { data: { name: payload.name, full_name: payload.name } },
+          email: payload.email,
+          password: payload.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/login/`,
+            data: { name: payload.name, full_name: payload.name },
+          },
           })
         : await supabase.auth.signInWithPassword({ email: payload.email, password: payload.password });
       if (result.error) {
