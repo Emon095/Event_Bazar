@@ -29,7 +29,7 @@ function SourceLogo({ source }: { source: string }) {
   const key = source.toLowerCase().replace(/\s+/g, "");
   if (key.includes("codeforces")) return <><i className="source-mark codeforces"><b/><b/><b/></i><span>Codeforces</span></>;
   if (key.includes("codechef")) return <><i className="source-mark codechef">♨</i><span>CodeChef</span></>;
-  if (key.includes("ctftime")) return <><i className="source-mark ctftime">CTF</i><span>CTFtime</span></>;
+  if (key.includes("ctftime")) return <><Image className="source-logo-image ctftime" src={publicPath("/ctftime-logo.svg")} alt="CTFtime" width={58} height={18} unoptimized/><span>CTFtime</span></>;
   return <><i className="source-mark community">EB</i><span>{source || "Event Bazar"}</span></>;
 }
 
