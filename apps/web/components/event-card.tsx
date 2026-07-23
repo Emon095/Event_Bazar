@@ -162,7 +162,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     setReactionPicker(false);
   };
 
-  return <motion.article className={`event-card category-${event.category.toLowerCase()}`} initial={{ opacity: 0, y: 28, scale: .985 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: "-60px" }} whileHover={{ y: -4 }} transition={{ delay: Math.min(index * .045, .22), duration: .48, ease: "easeOut" }}>
+  return <motion.article className={`event-card ${event.banner ? "has-banner" : "no-banner"} category-${event.category.toLowerCase()}`} initial={{ opacity: 0, y: 28, scale: .985 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: "-60px" }} whileHover={{ y: -4 }} transition={{ delay: Math.min(index * .045, .22), duration: .48, ease: "easeOut" }}>
     <div className="card-head">
       <div className={`avatar ${style.color}`}>{event.organizerInitials}</div>
       <div className="organizer"><strong>{event.organizer}</strong><span>{event.location} · <Globe2 size={12} /></span></div>
@@ -173,8 +173,9 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
       <div className="banner-shade" />
       {event.featured && <span className="featured"><Sparkles size={13} /> Featured</span>}
       <span className={`category ${style.color}`}>{style.icon} {event.category}</span>
+      <div className="event-visual-copy"><h2>{event.title}</h2><p>{event.description}</p></div>
       <div className="date-tile"><b>{date.toLocaleDateString("en", { day: "2-digit" })}</b><span>{date.toLocaleDateString("en", { month: "short" }).toUpperCase()}</span></div>
-    </Link> : <div className="no-image-meta"><span className={`category ${style.color}`}>{style.icon} {event.category}</span><span><b>{date.toLocaleDateString("en", { day: "2-digit" })}</b>{date.toLocaleDateString("en", { month: "short" }).toUpperCase()}</span><small>{event.source ?? "Community event"}</small></div>}
+    </Link> : <div className="no-image-meta"><span className={`category ${style.color}`}>{style.icon} {event.category}</span><div className="event-orbit-art"><i/><i/><i/><Globe2/></div><span><b>{date.toLocaleDateString("en", { day: "2-digit" })}</b>{date.toLocaleDateString("en", { month: "short" }).toUpperCase()}</span><small>{event.source ?? "Community event"}</small></div>}
     <div className="card-body">
       <Link href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}><h2>{event.title}</h2></Link>
       <p className="description">{event.description}</p>
