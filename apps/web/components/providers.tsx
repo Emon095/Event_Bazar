@@ -10,6 +10,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { staleTime: 60_000 } } }));
   const [supabase] = useState(() => createClient());
   useEffect(() => {
+    if (isNativeApp()) {
+      if ("serviceWorker" in navigator) void navigator.serviceWorker.getRegistrations().then(registrations => Promise.all(registrations.map(registration => registration.unregister())));
+      if ("caches" in window) void caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))));
+      return;
+    }
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker.register(publicPath("/sw.js"), { scope: publicPath("/") }).catch(() => undefined);
     }

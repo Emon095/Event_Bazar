@@ -1,0 +1,27 @@
+{
+  "appId": "com.eventbazar.app",
+  "appName": "Event Bazar",
+  "webDir": "www",
+  "server": {
+    "url": "https://emon095.github.io/Event_Bazar/?nativeBuild=4",
+    "androidScheme": "https",
+    "allowNavigation": [
+      "emon095.github.io",
+      "jpnhxknzezgizwoqjtcb.supabase.co"
+    ]
+  },
+  "android": {
+    "backgroundColor": "#031513"
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "backgroundColor": "#031513",
+      "style": "LIGHT"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#A7E81B"
+    }
+  }
+}

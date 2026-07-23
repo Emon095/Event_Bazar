@@ -1,4 +1,4 @@
-const CACHE = "event-bazar-v18";
+const CACHE = "event-bazar-v20";
 const BASE = "/Event_Bazar";
 const APP_SHELL = [`${BASE}/`, `${BASE}/manifest.json`, `${BASE}/brand/icon-192.png`, `${BASE}/brand/icon-512.png`];
 

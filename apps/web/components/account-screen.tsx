@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Camera, Download, LoaderCircle, Pencil, Save, UserRound } from "lucide-react";
+import { ArrowLeft, CalendarDays, Camera, Download, Globe2, GraduationCap, LoaderCircle, MapPin, Pencil, Save, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -12,6 +12,10 @@ type Profile = {
   institution: string | null; website_url: string | null; location: string | null;
   skills: string | null; is_admin: boolean;
 };
+type PostedEvent = {
+  id: string; slug: string; title: string; short_description: string; starts_at: string;
+  location: string; format: string; banner_url: string | null; categories: { name: string } | { name: string }[];
+};
 
 export function AccountScreen() {
   const [supabase] = useState(() => createClient());
@@ -20,18 +24,16 @@ export function AccountScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [tab, setTab] = useState<"posts" | "about">("posts");
+  const [postedEvents, setPostedEvents] = useState<PostedEvent[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data, error: authError }) => {
       if (authError || !data.user) throw new Error("Please sign in to open your account.");
       const { data: row, error } = await supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
       if (error) throw error;
-      if (row) {
-        setProfile(row as Profile);
-        return;
-      }
       const metadata = data.user.user_metadata;
-      setProfile({
+      const resolved = row ? row as Profile : {
         id: data.user.id,
         name: metadata.full_name || metadata.name || data.user.email?.split("@")[0] || "Event Bazar Member",
         email: data.user.email || "",
@@ -42,7 +44,11 @@ export function AccountScreen() {
         location: null,
         skills: null,
         is_admin: false,
-      });
+      };
+      setProfile(resolved);
+      const { data: posts, error: postsError } = await supabase.from("events").select("id,slug,title,short_description,starts_at,location,format,banner_url,categories(name)").eq("creator_id",data.user.id).eq("status","published").order("created_at",{ascending:false});
+      if (postsError) throw postsError;
+      setPostedEvents((posts ?? []) as PostedEvent[]);
     }).catch(reason => setError(reason.message)).finally(() => setLoading(false));
   }, [supabase]);
 
@@ -106,12 +112,13 @@ export function AccountScreen() {
     <section className="account-shell">
       {loading && !profile ? <div className="admin-empty"><LoaderCircle className="spin"/> Loading account…</div> :
        !profile ? <div className="account-required"><UserRound/><h1>Account required</h1><p>{error}</p><Link href="/login">Sign in or create account</Link></div> :
-       <><div className="account-profile-head">
+       <><div className="account-cover"><span>Event Bazar creator profile</span></div><div className="account-profile-head social-profile-head">
           <div className="profile-picture">{profile.avatar_url ? <Image src={profile.avatar_url} alt={profile.name} width={164} height={164} unoptimized/> : <UserRound/>}<label className="avatar-upload" title="Upload profile picture"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={uploading} onChange={change => {const file=change.target.files?.[0];if(file)void uploadAvatar(file);change.target.value="";}}/>{uploading ? <LoaderCircle className="spin"/> : <Camera/>}</label></div>
           <div><small>{profile.is_admin ? "ADMIN ACCOUNT" : "EVENT BAZAR MEMBER"}</small><h1>{profile.name}</h1><p>{profile.email}</p></div>
           <div className="profile-tools"><button onClick={() => setEditing(value => !value)}><Pencil/> {editing ? "Cancel" : "Edit"}</button><button onClick={downloadText}><Download/> TXT</button></div>
         </div>
         {error && <div className="form-error">{error}</div>}
+        {!editing && <div className="profile-tabs"><button className={tab==="posts"?"active":""} onClick={()=>setTab("posts")}>Posts</button><button className={tab==="about"?"active":""} onClick={()=>setTab("about")}>About</button></div>}
         {editing ? <form className="profile-form" onSubmit={save}>
           <label><span>Name *</span><input name="name" defaultValue={profile.name} minLength={2} required/></label>
           <label><span>Email</span><input value={profile.email} disabled/></label>
@@ -122,11 +129,11 @@ export function AccountScreen() {
           <label className="wide"><span>Skills / interests</span><input name="skills" defaultValue={profile.skills || ""} placeholder="CTF, Python, AI, competitive programming"/></label>
           <label className="wide"><span>Bio</span><textarea name="bio" defaultValue={profile.bio || ""} maxLength={1000} rows={5} placeholder="Tell the community about yourself…"/></label>
           <button className="profile-save" disabled={loading}><Save/> {loading ? "Saving…" : "Save profile"}</button>
-        </form> : <div className="profile-details">
+        </form> : tab === "about" ? <div className="profile-details">
           <div><small>VARSITY / INSTITUTE</small><b>{profile.institution || "Not added"}</b></div><div><small>LOCATION</small><b>{profile.location || "Not added"}</b></div>
           <div><small>SKILLS / INTERESTS</small><b>{profile.skills || "Not added"}</b></div><div><small>WEBSITE</small><b>{profile.website_url || "Not added"}</b></div>
           <article><small>BIO</small><p>{profile.bio || "Add a bio to introduce yourself to the Event Bazar community."}</p></article>
-        </div>}</>}
+        </div> : <div className="account-feed-layout"><aside className="profile-intro-card"><h2>Intro</h2><p>{profile.bio || "Add a bio to introduce yourself to the Event Bazar community."}</p>{profile.institution&&<span><GraduationCap/>{profile.institution}</span>}{profile.location&&<span><MapPin/>{profile.location}</span>}{profile.website_url&&<a href={profile.website_url} target="_blank" rel="noopener noreferrer"><Globe2/>{profile.website_url}</a>}<b>{postedEvents.length} published {postedEvents.length===1?"event":"events"}</b></aside><section className="account-post-feed"><h2>Event posts</h2>{postedEvents.length?postedEvents.map(item=>{const category=Array.isArray(item.categories)?item.categories[0]:item.categories;return <article className="account-event-post" key={item.id}>{item.banner_url&&<Image src={item.banner_url} alt="" width={700} height={300} unoptimized/>}<div><span>{category?.name||"Event"} · {item.format}</span><h3>{item.title}</h3><p>{item.short_description}</p><footer><small><CalendarDays/>{new Date(item.starts_at).toLocaleDateString()}</small><small><MapPin/>{item.location}</small><Link href={`/events/${item.slug}`}>View event</Link></footer></div></article>}):<div className="panel-empty"><CalendarDays/><b>No event posts yet</b><p>Events you publish will appear in this profile feed.</p><Link href="/create-event">Create an event</Link></div>}</section></div>}</>}
     </section>
   </main>;
 }
