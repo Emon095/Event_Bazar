@@ -31,13 +31,13 @@ pip install -e '.[dev]'
 uvicorn app.main:app --reload
 ```
 
-Open `http://localhost:3000`. API docs are at `http://localhost:8000/docs`.
-The API defaults to SQLite for zero-config development. Copy each `.env.example`
-when using PostgreSQL or a different API origin.
+Open the production application at `https://emon095.github.io`.
+The API defaults to SQLite for development. Copy each `.env.example` when using
+PostgreSQL or a different API origin.
 
-For Google sign-in, create an OAuth web client in Google Cloud, authorize
-`http://localhost:8000/api/v1/auth/google/callback`, then set
-`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Guest login requires no setup.
+Google sign-in is managed by Supabase. The authorized Google OAuth callback is
+`https://jpnhxknzezgizwoqjtcb.supabase.co/auth/v1/callback`. Supabase redirects
+successful authentication back to `https://emon095.github.io`.
 
 Community submissions are published immediately after server-side validation.
 

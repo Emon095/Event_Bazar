@@ -7,13 +7,13 @@ class Settings(BaseSettings):
     app_name: str = "Event Bazar API"
     environment: str = "development"
     database_url: str = "sqlite:///./event_bazar.db"
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "https://emon095.github.io"
     secret_key: str = "development-only-change-me"
     admin_key: str = ""
-    frontend_url: str = "http://localhost:3000"
+    frontend_url: str = "https://emon095.github.io"
     google_client_id: str = ""
     google_client_secret: str = ""
-    google_redirect_uri: str = "http://localhost:8000/api/v1/auth/google/callback"
+    google_redirect_uri: str = "https://jpnhxknzezgizwoqjtcb.supabase.co/auth/v1/callback"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

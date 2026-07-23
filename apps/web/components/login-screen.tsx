@@ -8,6 +8,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { Logo } from "./logo";
 import { createClient } from "@/utils/supabase/client";
 
+const PRODUCTION_URL = "https://emon095.github.io";
+
 export function LoginScreen() {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -38,7 +40,7 @@ export function LoginScreen() {
           email: payload.email,
           password: payload.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/login/`,
+            emailRedirectTo: PRODUCTION_URL,
             data: { name: payload.name, full_name: payload.name },
           },
           })
@@ -72,7 +74,10 @@ export function LoginScreen() {
   }
   async function google() {
     setError("");
-    const { error } = await supabase.auth.signInWithOAuth({ provider:"google", options:{ redirectTo:`${location.origin}/` } });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: PRODUCTION_URL },
+    });
     if (error) setError(error.message);
   }
 

@@ -22,7 +22,7 @@ function hash(value: string) { return [...value].reduce((sum, character) => sum 
 
 export async function fetchUpcoming(): Promise<{ events: EventItem[]; status: Record<string, SourceStatus> }> {
   const staticFeeds = process.env.NEXT_PUBLIC_STATIC_FEEDS === "true";
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  const base = process.env.NEXT_PUBLIC_API_URL ?? "https://emon095.github.io/api/v1";
   const endpoint = staticFeeds ? "/data/upcoming.json" : `${base}/sources/upcoming`;
   const response = await fetch(endpoint, {
     headers: { Accept: "application/json" },
