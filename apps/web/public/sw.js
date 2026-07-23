@@ -1,5 +1,6 @@
-const CACHE = "event-bazar-v17";
-const APP_SHELL = ["/", "/manifest.json", "/brand/icon-192.png", "/brand/icon-512.png"];
+const CACHE = "event-bazar-v18";
+const BASE = "/Event_Bazar";
+const APP_SHELL = [`${BASE}/`, `${BASE}/manifest.json`, `${BASE}/brand/icon-192.png`, `${BASE}/brand/icon-512.png`];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)));
@@ -19,5 +20,5 @@ self.addEventListener("fetch", event => {
       caches.open(CACHE).then(cache => cache.put(event.request, copy));
     }
     return response;
-  }).catch(() => caches.match(event.request).then(cached => cached || caches.match("/"))));
+  }).catch(() => caches.match(event.request).then(cached => cached || caches.match(`${BASE}/`))));
 });

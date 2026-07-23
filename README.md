@@ -31,13 +31,13 @@ pip install -e '.[dev]'
 uvicorn app.main:app --reload
 ```
 
-Open the production application at `https://emon095.github.io`.
+Open the production application at `https://emon095.github.io/Event_Bazar`.
 The API defaults to SQLite for development. Copy each `.env.example` when using
 PostgreSQL or a different API origin.
 
 Google sign-in is managed by Supabase. The authorized Google OAuth callback is
 `https://jpnhxknzezgizwoqjtcb.supabase.co/auth/v1/callback`. Supabase redirects
-successful authentication back to `https://emon095.github.io`.
+successful authentication back to `https://emon095.github.io/Event_Bazar`.
 
 Community submissions are published immediately after server-side validation.
 

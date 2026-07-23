@@ -15,10 +15,10 @@ services:
     build: ./apps/api
     environment:
       DATABASE_URL: postgresql+psycopg://eventbazar:eventbazar@db:5432/eventbazar
-      CORS_ORIGINS: https://emon095.github.io
+      CORS_ORIGINS: https://emon095.github.io/Event_Bazar
       SECRET_KEY: ${SECRET_KEY:-local-docker-secret-change-in-production}
       ADMIN_KEY: ${ADMIN_KEY:-}
-      FRONTEND_URL: https://emon095.github.io
+      FRONTEND_URL: https://emon095.github.io/Event_Bazar
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: https://jpnhxknzezgizwoqjtcb.supabase.co/auth/v1/callback
@@ -28,7 +28,7 @@ services:
   web:
     build: ./apps/web
     environment:
-      NEXT_PUBLIC_API_URL: https://emon095.github.io/api/v1
+      NEXT_PUBLIC_API_URL: https://emon095.github.io/Event_Bazar/api/v1
     ports: ["3000:3000"]
     depends_on: [api]
 volumes:

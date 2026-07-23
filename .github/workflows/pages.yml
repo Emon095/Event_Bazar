@@ -41,6 +41,8 @@ jobs:
       - run: npm run build
         env:
           GITHUB_PAGES: "true"
+          NEXT_PUBLIC_BASE_PATH: /Event_Bazar
+          NEXT_PUBLIC_SITE_URL: https://emon095.github.io/Event_Bazar
           NEXT_PUBLIC_STATIC_FEEDS: "true"
           NEXT_PUBLIC_SUPABASE_URL: https://jpnhxknzezgizwoqjtcb.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_7RBBzxJmpIm5Ibv--sqk_w_TOpOkmA8

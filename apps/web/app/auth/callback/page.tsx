@@ -4,6 +4,7 @@ import { CheckCircle2, LoaderCircle, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { SITE_URL } from "@/lib/site";
 
 export default function AuthCallbackPage() {
   const [message, setMessage] = useState("Completing Google sign-in…");
@@ -33,7 +34,7 @@ export default function AuthCallbackPage() {
         avatar_url: user.user_metadata.avatar_url || user.user_metadata.picture || null,
       }));
       if (active) setMessage("Signed in successfully. Opening Event Bazar…");
-      window.location.replace("https://emon095.github.io");
+      window.location.replace(SITE_URL);
     }
 
     void complete().catch(reason => {

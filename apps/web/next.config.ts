@@ -1,9 +1,15 @@
 import type { NextConfig } from "next";
 
 const isGitHubPages = process.env.GITHUB_PAGES === "true";
+const repositoryPath = "/Event_Bazar";
 
 const nextConfig: NextConfig = {
-  ...(isGitHubPages ? { output: "export" as const, trailingSlash: true } : {}),
+  ...(isGitHubPages ? {
+    output: "export" as const,
+    trailingSlash: true,
+    basePath: repositoryPath,
+    assetPrefix: repositoryPath,
+  } : {}),
   images: {
     unoptimized: isGitHubPages,
     remotePatterns: [

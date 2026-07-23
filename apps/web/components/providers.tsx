@@ -4,13 +4,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { isNativeApp } from "@/lib/native";
+import { publicPath } from "@/lib/site";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { staleTime: 60_000 } } }));
   const [supabase] = useState(() => createClient());
   useEffect(() => {
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+      navigator.serviceWorker.register(publicPath("/sw.js"), { scope: publicPath("/") }).catch(() => undefined);
     }
   }, []);
   useEffect(() => {
@@ -59,15 +60,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
         const providerError = parsed.searchParams.get("error_description") || parsed.searchParams.get("error");
         await import("@capacitor/browser").then(({ Browser }) => Browser.close()).catch(() => undefined);
         if (providerError || !code) {
-          window.location.replace(`/login?error=${encodeURIComponent(providerError || "Google did not return an authorization code.")}`);
+          window.location.replace(publicPath(`/login?error=${encodeURIComponent(providerError || "Google did not return an authorization code.")}`));
           return;
         }
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
-          window.location.replace(`/login?error=${encodeURIComponent(error.message)}`);
+          window.location.replace(publicPath(`/login?error=${encodeURIComponent(error.message)}`));
           return;
         }
-        window.location.replace("/");
+        window.location.replace(publicPath("/"));
       });
       removeListener = () => listener.remove();
     });

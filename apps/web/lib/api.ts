@@ -1,5 +1,6 @@
 import type { Category, EventItem } from "./types";
 import { createClient } from "@/utils/supabase/client";
+import { publicPath } from "@/lib/site";
 
 interface LiveEvent {
   id: string; source: string; title: string; starts_at: string; registration_deadline: string;
@@ -22,8 +23,8 @@ function hash(value: string) { return [...value].reduce((sum, character) => sum 
 
 export async function fetchUpcoming(): Promise<{ events: EventItem[]; status: Record<string, SourceStatus> }> {
   const staticFeeds = process.env.NEXT_PUBLIC_STATIC_FEEDS === "true";
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "https://emon095.github.io/api/v1";
-  const endpoint = staticFeeds ? "/data/upcoming.json" : `${base}/sources/upcoming`;
+  const base = process.env.NEXT_PUBLIC_API_URL ?? "https://emon095.github.io/Event_Bazar/api/v1";
+  const endpoint = staticFeeds ? publicPath("/data/upcoming.json") : `${base}/sources/upcoming`;
   const response = await fetch(endpoint, {
     headers: { Accept: "application/json" },
     cache: "no-store",

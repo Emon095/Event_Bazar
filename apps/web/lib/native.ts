@@ -1,8 +1,9 @@
 import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import type { EventItem } from "@/lib/types";
+import { SITE_URL } from "@/lib/site";
 
-export const MOBILE_AUTH_CALLBACK = "https://emon095.github.io/auth/mobile-callback/";
+export const MOBILE_AUTH_CALLBACK = `${SITE_URL}/auth/mobile-callback/`;
 
 export function isNativeApp() {
   return Capacitor.isNativePlatform();
