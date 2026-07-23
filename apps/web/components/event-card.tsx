@@ -9,6 +9,7 @@ import { categoryStyle } from "@/lib/data";
 import type { EventItem } from "@/lib/types";
 import { Countdown } from "./countdown";
 import { createClient } from "@/utils/supabase/client";
+import { cancelEventReminder, scheduleEventReminder } from "@/lib/native";
 
 const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 
@@ -44,6 +45,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     const next = !current;
     localStorage.setItem(`interested:${event.id}`, next ? "1" : "0");
     window.dispatchEvent(new CustomEvent("event-bazar-interest-changed", { detail: { id: event.id, interested: next } }));
+    void (next ? scheduleEventReminder(event) : cancelEventReminder(event));
     if (databaseEvent && userId) void (next
       ? supabase.from("event_reactions").upsert({event_id:event.id,user_id:userId,reaction:"interested"})
       : supabase.from("event_reactions").delete().eq("event_id",event.id).eq("user_id",userId).eq("reaction","interested"));

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { isNativeApp } from "@/lib/native";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { staleTime: 60_000 } } }));
@@ -46,6 +47,31 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return () => {
       listener.subscription.unsubscribe();
     };
+  }, [supabase]);
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    let removeListener: (() => Promise<void>) | undefined;
+    void import("@capacitor/app").then(async ({ App }) => {
+      const listener = await App.addListener("appUrlOpen", async ({ url }) => {
+        if (!url.startsWith("com.eventbazar.app://auth/callback")) return;
+        const parsed = new URL(url);
+        const code = parsed.searchParams.get("code");
+        const providerError = parsed.searchParams.get("error_description") || parsed.searchParams.get("error");
+        await import("@capacitor/browser").then(({ Browser }) => Browser.close()).catch(() => undefined);
+        if (providerError || !code) {
+          window.location.replace(`/login?error=${encodeURIComponent(providerError || "Google did not return an authorization code.")}`);
+          return;
+        }
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          window.location.replace(`/login?error=${encodeURIComponent(error.message)}`);
+          return;
+        }
+        window.location.replace("/");
+      });
+      removeListener = () => listener.remove();
+    });
+    return () => { void removeListener?.(); };
   }, [supabase]);
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }

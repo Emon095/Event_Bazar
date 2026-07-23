@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { Logo } from "./logo";
 import { createClient } from "@/utils/supabase/client";
+import { MOBILE_AUTH_CALLBACK, isNativeApp } from "@/lib/native";
 
 const PRODUCTION_URL = "https://emon095.github.io";
 const AUTH_CALLBACK_URL = `${PRODUCTION_URL}/auth/callback/`;
@@ -18,8 +19,11 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   useEffect(() => {
-    if (new URLSearchParams(location.search).get("error") === "google_not_configured") {
+    const authError = new URLSearchParams(location.search).get("error");
+    if (authError === "google_not_configured") {
       setError("Google login needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in the API environment. Guest mode is ready now.");
+    } else if (authError) {
+      setError(authError);
     }
   }, []);
   const guest = () => {
@@ -75,10 +79,15 @@ export function LoginScreen() {
   }
   async function google() {
     setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
+    const native = isNativeApp();
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: AUTH_CALLBACK_URL },
+      options: { redirectTo: native ? MOBILE_AUTH_CALLBACK : AUTH_CALLBACK_URL, skipBrowserRedirect: native },
     });
+    if (native && data.url) {
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url: data.url });
+    }
     if (error) setError(error.message);
   }
 

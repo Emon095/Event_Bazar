@@ -9,6 +9,7 @@ import { fetchCommunityEvents, fetchUpcoming } from "@/lib/api";
 import { events } from "@/lib/data";
 import type { Category } from "@/lib/types";
 import { createClient } from "@/utils/supabase/client";
+import { notifyNewEvents } from "@/lib/native";
 import { EventCard } from "./event-card";
 import { Logo } from "./logo";
 
@@ -34,6 +35,9 @@ export function AppShell() {
     const seen = new Set(communityEvents.map(event => event.id));
     return [...communityEvents, ...liveEvents.filter(event => !seen.has(event.id))];
   }, [community.data, live.data?.events]);
+  useEffect(() => {
+    if (live.isFetched || community.isFetched) void notifyNewEvents(allEvents);
+  }, [allEvents, community.isFetched, live.isFetched]);
 
   useEffect(() => {
     const saved = localStorage.getItem("event-bazar-theme-v2");
