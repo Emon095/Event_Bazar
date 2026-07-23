@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, ExternalLink, ImagePlus, LoaderCircle, MapPin, Sparkles, UploadCloud } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "./logo";
 import { createClient } from "@/utils/supabase/client";
@@ -17,10 +17,17 @@ export function CreateEventForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState(defaultBanner);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
   const [starts, setStarts] = useState("");
   const [ends, setEnds] = useState("");
+  useEffect(() => {
+    if (!bannerFile) return;
+    const objectUrl = URL.createObjectURL(bannerFile);
+    setPreview(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [bannerFile]);
   const slug = useMemo(() => title.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""), [title]);
   const today = useMemo(() => {
     const now = new Date();
@@ -40,7 +47,7 @@ export function CreateEventForm() {
     const payload = {
       title, slug, short_description: values.get("short_description"),
       description: values.get("description"), category_slug: values.get("category"),
-      organizer_name: values.get("organizer"), banner_url: values.get("banner_url") || defaultBanner,
+      organizer_name: values.get("organizer"), banner_url: String(values.get("banner_url") || "").trim() || defaultBanner,
       starts_at: startsAt.toISOString(), registration_deadline: deadlineAt.toISOString(),
       ends_at: endsAt?.toISOString() ?? null, registration_url: values.get("registration_url") || null,
       website_url: values.get("website_url") || null, discord_url: values.get("discord_url") || null, prize: values.get("prize") || "Free",
@@ -50,6 +57,18 @@ export function CreateEventForm() {
     try {
       const { data:auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error("Please sign in before publishing an event.");
+      if (bannerFile) {
+        if (!bannerFile.type.startsWith("image/")) throw new Error("Choose a JPG, PNG, WebP, or GIF banner image.");
+        if (bannerFile.size > 8 * 1024 * 1024) throw new Error("The banner image must be smaller than 8 MB.");
+        const extension = bannerFile.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+        const bannerPath = `${auth.user.id}/event-banners/${Date.now()}-${slug}.${extension}`;
+        const { error:uploadError } = await supabase.storage.from("avatars").upload(bannerPath, bannerFile, {
+          contentType: bannerFile.type,
+          cacheControl: "3600",
+        });
+        if (uploadError) throw new Error(`Could not upload the event banner: ${uploadError.message}`);
+        payload.banner_url = supabase.storage.from("avatars").getPublicUrl(bannerPath).data.publicUrl;
+      }
       const { data:category, error:categoryError } = await supabase.from("categories").select("id").eq("slug",payload.category_slug).single();
       if (categoryError) throw categoryError;
       const { error:insertError } = await supabase.from("events").insert({
@@ -88,8 +107,9 @@ export function CreateEventForm() {
         <div className="form-section-title section-gap"><span><ImagePlus/></span><div><small>STEP 03</small><h2>Links and presentation</h2></div></div>
         <label className="wide"><span>Registration link</span><input type="url" name="registration_url" placeholder="https://…"/></label>
         <div className="form-grid"><label><span>Website</span><input type="url" name="website_url" placeholder="https://…"/></label><label><span>Discord/community link</span><input type="url" name="discord_url" placeholder="https://…"/></label></div>
-        <div className="form-grid"><label><span>Prize</span><input name="prize" placeholder="Free, ৳50K, $10,000…"/></label><label><span>Banner image URL</span><input type="url" name="banner_url" placeholder="https://…" onChange={event => setPreview(event.target.value || defaultBanner)}/></label></div>
-        <div className="banner-preview"><Image src={preview} alt="Event banner preview" fill sizes="600px" unoptimized onError={() => setPreview(defaultBanner)}/><span><UploadCloud/> Live banner preview</span></div>
+        <div className="form-grid"><label><span>Prize</span><input name="prize" placeholder="Free, ৳50K, $10,000…"/></label><label><span>Banner image URL</span><input type="url" name="banner_url" placeholder="https://…" disabled={Boolean(bannerFile)} onChange={event => setPreview(event.target.value || defaultBanner)}/></label></div>
+        <label className="wide"><span>Or upload a banner image</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={event => { setError(""); setBannerFile(event.target.files?.[0] ?? null); }}/><small>JPG, PNG, WebP, or GIF · maximum 8 MB</small></label>
+        <div className="banner-preview"><Image src={preview} alt="Event banner preview" fill sizes="600px" unoptimized onError={() => setPreview(defaultBanner)}/><span><UploadCloud/> {bannerFile ? bannerFile.name : "Live banner preview"}</span></div>
         {error && <div className="form-error">{error}</div>}
         <div className="form-submit"><p>By publishing, you confirm that the event details and links are accurate.</p><button disabled={submitting}>{submitting ? <><LoaderCircle className="spin"/> Publishing…</> : <>Publish event <ExternalLink/></>}</button></div>
       </form>

@@ -109,8 +109,15 @@ export function AppShell() {
   useEffect(() => { setVisible(5); }, [filter, query, sort]);
   useEffect(() => {
     if (!location.hash.startsWith("#event-") || !allEvents.length) return;
-    const targetId = decodeURIComponent(location.hash.slice(1));
-    const targetIndex = shown.findIndex(event => `event-${event.slug}` === targetId);
+    const encodedSlug = location.hash.slice("#event-".length);
+    let targetSlug = encodedSlug;
+    try {
+      targetSlug = decodeURIComponent(encodedSlug);
+    } catch {
+      // Keep malformed links from crashing the entire client application.
+    }
+    const targetId = `event-${targetSlug}`;
+    const targetIndex = shown.findIndex(event => event.slug === targetSlug);
     if (targetIndex >= 0) setVisible(value => Math.max(value, targetIndex + 1));
     const timer = window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" }), 250);
     return () => window.clearTimeout(timer);
