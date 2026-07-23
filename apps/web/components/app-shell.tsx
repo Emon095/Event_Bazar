@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, BriefcaseBusiness, Code2, Heart, Home, LogIn, Moon, Plus, Search, ShieldCheck, Sparkles, Sun, UserRound, X, Zap } from "lucide-react";
+import { Bell, BriefcaseBusiness, Code2, Heart, Home, LogIn, Menu, MessageCircle, Moon, Plus, Search, ShieldCheck, Sparkles, Sun, UserRound, X, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +16,7 @@ import { Logo } from "./logo";
 
 type SortMode = "recommended" | "soonest" | "popular";
 type AccountSummary = { name: string; email: string; initials: string; avatarUrl: string | null };
+type ActivityNotice = { id:string; title:string; body:string; link:string|null; read_at:string|null; created_at:string };
 
 export function AppShell() {
   const [filter, setFilter] = useState<Category | "All">("All");
@@ -26,6 +27,7 @@ export function AppShell() {
   const [panel, setPanel] = useState<"notifications" | "account" | "sources" | "interested" | null>(null);
   const [interestedIds, setInterestedIds] = useState<Set<string>>(new Set());
   const [account, setAccount] = useState<AccountSummary | null>(null);
+  const [notifications, setNotifications] = useState<ActivityNotice[]>([]);
   const [supabase] = useState(() => createClient());
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const live = useQuery({ queryKey: ["upcoming-events"], queryFn: fetchUpcoming, refetchInterval: 15 * 60_000, retry: 1 });
@@ -67,6 +69,23 @@ export function AppShell() {
     window.addEventListener("event-bazar-auth-changed", refreshAccount);
     return () => window.removeEventListener("event-bazar-auth-changed", refreshAccount);
   }, [supabase]);
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const refreshNotifications = async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) { setNotifications([]); return; }
+      const { data } = await supabase.from("notifications").select("id,title,body,link,read_at,created_at").eq("user_id",auth.user.id).order("created_at",{ascending:false}).limit(40);
+      setNotifications((data??[]) as ActivityNotice[]);
+      if (!channel) channel=supabase.channel(`notifications:${auth.user.id}`).on("postgres_changes",{event:"*",schema:"public",table:"notifications",filter:`user_id=eq.${auth.user.id}`},refreshNotifications).subscribe();
+    };
+    void refreshNotifications();
+    return ()=>{if(channel)void supabase.removeChannel(channel);};
+  },[supabase]);
+  const openNotifications = async () => {
+    setPanel(panel === "notifications" ? null : "notifications");
+    const unread=notifications.filter(item=>!item.read_at).map(item=>item.id);
+    if(unread.length) await supabase.from("notifications").update({read_at:new Date().toISOString()}).in("id",unread);
+  };
   const signOut = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem("event-bazar-user");
@@ -112,15 +131,15 @@ export function AppShell() {
       <label className="neo-search"><Search/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search  events, platforms, organizers…"/>{query && <button onClick={() => setQuery("")} aria-label="Clear search"><X/></button>}</label>
       <div className="neo-actions">
         <button onClick={toggleTheme} aria-label="Change color theme">{theme === "dark" ? <Sun/> : <Moon/>}</button>
-        <button onClick={() => setPanel(panel === "notifications" ? null : "notifications")} aria-label="Notifications" className="bell"><Bell/><i>3</i></button>
-        <button onClick={() => setPanel(panel === "notifications" ? null : "notifications")} aria-label="Activity" className="web-activity"><Heart/><i/></button>
+        <button onClick={() => void openNotifications()} aria-label="Notifications" className="bell"><Bell/>{notifications.some(item=>!item.read_at)&&<i>{notifications.filter(item=>!item.read_at).length}</i>}</button>
+        <button onClick={() => void openNotifications()} aria-label="Activity" className="web-activity"><Heart/>{notifications.some(item=>!item.read_at)&&<i/>}</button>
         <button onClick={() => setPanel(panel === "account" ? null : "account")} aria-label="Account" className="account-orb">{account?.avatarUrl ? <Image src={account.avatarUrl} alt={account.name} width={39} height={39} unoptimized/> : account?.initials || <UserRound/>}</button>
       </div>
     </header>
 
     <AnimatePresence>{panel && <><motion.button className="panel-scrim" aria-label="Close panel" onClick={() => setPanel(null)} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}/><motion.aside className="quick-panel" initial={{opacity:0,y:-12,scale:.96}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:-8,scale:.97}}>
       <button className="panel-close" onClick={() => setPanel(null)}><X/></button>
-      {panel === "notifications" && <><span className="panel-icon coral"><Bell/></span><h3>Notifications</h3><div className="notice"><i className="blue"/><span><b>Codegate CTF starts soon</b><small>Check the official event page for updates.</small></span></div><div className="notice"><i className="coral"/><span><b>New hackathons added</b><small>Fresh Devpost events are now live.</small></span></div><div className="notice"><i className="green"/><span><b>Sources refreshed</b><small>{live.data ? "All live feeds are up to date." : "Connecting to event feeds…"}</small></span></div></>}
+      {panel === "notifications" && <><span className="panel-icon coral"><Bell/></span><h3>Notifications</h3>{notifications.length?notifications.map(item=><Link className={`notice notification-link ${item.read_at?"":"unread"}`} href={item.link||"/"} key={item.id} onClick={()=>setPanel(null)}><i className={item.read_at?"blue":"coral"}/><span><b>{item.title}</b><small>{item.body} · {new Date(item.created_at).toLocaleString()}</small></span></Link>):<div className="panel-empty"><Bell/><b>No notifications yet</b><p>Reactions, interests, comments, replies, and messages will appear here.</p></div>}</>}
       {panel === "account" && (account
         ? <><span className="panel-avatar">{account.avatarUrl ? <Image src={account.avatarUrl} alt={account.name} width={41} height={41} unoptimized/> : account.initials}</span><h3>{account.name}</h3><p>{account.email}</p><Link href="/account" onClick={() => setPanel(null)}>Open account <UserRound/></Link><button className="panel-signout" onClick={() => void signOut()}>Sign out <LogIn/></button></>
         : <><span className="panel-avatar">EB</span><h3>Welcome to Event Bazar</h3><p>Sign in to sync your events across devices, or continue as a guest.</p><Link href="/login" onClick={() => setPanel(null)}>Continue to login <LogIn/></Link></>)}
@@ -128,6 +147,7 @@ export function AppShell() {
       {panel === "interested" && <><span className="panel-icon coral"><Heart/></span><h3>Interested events</h3>{interestedIds.size ? allEvents.filter(event => interestedIds.has(event.id)).map(event => <a className="interest-row" key={event.id} href={event.officialUrl ?? `/events/${event.slug}`} target={event.officialUrl ? "_blank" : undefined} rel={event.officialUrl ? "noopener noreferrer" : undefined}><span>{event.category}</span><b>{event.title}</b><small>{new Date(event.startsAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</small></a>) : <div className="panel-empty"><Heart/><b>Nothing here yet</b><p>Tap “I’m interested” on an event and it will appear here.</p></div>}</>}
     </motion.aside></>}</AnimatePresence>
 
+    <nav className="web-side-menu" aria-label="Web menu"><Link href="/" className="side-brand"><Logo/></Link><a href="#event-feed"><Home/><span>Home</span></a><button onClick={()=>void openNotifications()}><Heart/><span>Notifications</span>{notifications.some(item=>!item.read_at)&&<i>{notifications.filter(item=>!item.read_at).length}</i>}</button><Link href="/messages"><MessageCircle/><span>Messages</span></Link><Link href="/create-event"><Plus/><span>Create</span></Link><Link href="/account" className="side-account">{account?.avatarUrl?<Image src={account.avatarUrl} alt="" width={30} height={30} unoptimized/>:<UserRound/>}<span>Profile</span></Link><button className="side-more"><Menu/><span>More</span></button></nav>
     <main className="neo-main">
       <section className="feed-heading" id="event-feed"><div><span>CURATED FOR YOU</span><h2>{filter === "All" ? "Upcoming events" : filter}</h2></div><button className={`source-pill ${live.isError ? "error" : ""}`} onClick={() => setPanel("sources")}><i/>{live.isLoading ? "Connecting" : live.isError ? "Cached mode" : "Live & updated"}</button></section>
       <div className="sort-tabs">{([['recommended','For you'],['soonest','Starting soon'],['popular','Most popular']] as [SortMode,string][]).map(([value,label]) => <button key={value} className={sort === value ? "active" : ""} onClick={() => setSort(value)}>{label}</button>)}</div>
@@ -146,6 +166,7 @@ export function AppShell() {
       </div>
       <div className="dock-actions">
         <Link href="/create-event" className="dock-create"><Plus/><span>Create</span></Link>
+        <Link href="/messages"><MessageCircle/><span>Messages</span></Link>
         <button className={panel === "interested" ? "active" : ""} onClick={() => setPanel(panel === "interested" ? null : "interested")}><Heart/><i className="dock-count">{interestedIds.size}</i><span>Saved</span></button>
         <Link href="/account"><UserRound/><span>Account</span></Link>
       </div>
