@@ -152,7 +152,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     return next;
   });
   const share = async () => {
-    const url = `${SITE_URL}/events/${encodeURIComponent(event.slug)}/`;
+    const url = `${SITE_URL}/#event-${encodeURIComponent(event.slug)}`;
     if (navigator.share) await navigator.share({ title: event.title, url }).catch(() => undefined);
     else await navigator.clipboard.writeText(url);
   };
@@ -178,7 +178,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     setReactionPicker(false);
   };
 
-  return <motion.article className={`event-card ${event.banner ? "has-banner" : "no-banner"} category-${event.category.toLowerCase()}`} initial={{ opacity: 0, y: 28, scale: .985 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: "-60px" }} whileHover={{ y: -4 }} transition={{ delay: Math.min(index * .045, .22), duration: .48, ease: "easeOut" }}>
+  return <motion.article id={`event-${event.slug}`} className={`event-card ${event.banner ? "has-banner" : "no-banner"} category-${event.category.toLowerCase()}`} initial={{ opacity: 0, y: 28, scale: .985 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: "-60px" }} whileHover={{ y: -4 }} transition={{ delay: Math.min(index * .045, .22), duration: .48, ease: "easeOut" }}>
     <div className="card-head">
       <div className={`avatar ${style.color}`}>{event.organizerInitials}</div>
       <div className="organizer"><strong>{event.organizer}</strong><span>{event.location} · <Globe2 size={12} /></span></div>

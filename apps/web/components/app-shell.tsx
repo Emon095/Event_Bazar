@@ -108,6 +108,14 @@ export function AppShell() {
 
   useEffect(() => { setVisible(5); }, [filter, query, sort]);
   useEffect(() => {
+    if (!location.hash.startsWith("#event-") || !allEvents.length) return;
+    const targetId = decodeURIComponent(location.hash.slice(1));
+    const targetIndex = shown.findIndex(event => `event-${event.slug}` === targetId);
+    if (targetIndex >= 0) setVisible(value => Math.max(value, targetIndex + 1));
+    const timer = window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "center" }), 250);
+    return () => window.clearTimeout(timer);
+  }, [allEvents.length, shown]);
+  useEffect(() => {
     const refresh = () => setInterestedIds(new Set(allEvents.filter(event => localStorage.getItem(`interested:${event.id}`) === "1").map(event => event.id)));
     refresh();
     window.addEventListener("event-bazar-interest-changed", refresh);
