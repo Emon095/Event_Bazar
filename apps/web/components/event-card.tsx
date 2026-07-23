@@ -221,6 +221,5 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
         if (!error) { setCommentSent(true); setComment(""); setReplyingTo(null); }
       }}><span className="avatar blue">YOU</span><input value={comment} onChange={change => {setComment(change.target.value);setCommentSent(false);}} placeholder={userId ? (replyingTo ? `Reply to ${replyingTo.authorName}…` : "Write a comment…") : "Sign in to comment…"} aria-label="Comment"/><button aria-label="Send comment" disabled={!comment.trim()}>{commentSent ? <Check/> : <Send/>}</button></form>
     </motion.div>}</AnimatePresence>
-    <AnimatePresence>{interested && <motion.div className="toast" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>We’ll remind you before it starts ✨</motion.div>}</AnimatePresence>
   </motion.article>;
 }
