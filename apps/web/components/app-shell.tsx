@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BriefcaseBusiness, Code2, Heart, Home, LogIn, Moon, Plus, Search, ShieldCheck, Sparkles, Sun, UserRound, X, Zap } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchCommunityEvents, fetchUpcoming } from "@/lib/api";
@@ -14,7 +15,7 @@ import { EventCard } from "./event-card";
 import { Logo } from "./logo";
 
 type SortMode = "recommended" | "soonest" | "popular";
-type AccountSummary = { name: string; email: string; initials: string };
+type AccountSummary = { name: string; email: string; initials: string; avatarUrl: string | null };
 
 export function AppShell() {
   const [filter, setFilter] = useState<Category | "All">("All");
@@ -53,11 +54,13 @@ export function AppShell() {
         setAccount(null);
         return;
       }
-      const name = user.user_metadata.full_name || user.user_metadata.name || user.email?.split("@")[0] || "Member";
+      const { data: profile } = await supabase.from("profiles").select("name,avatar_url").eq("id", user.id).maybeSingle();
+      const name = profile?.name || user.user_metadata.full_name || user.user_metadata.name || user.email?.split("@")[0] || "Member";
       setAccount({
         name,
         email: user.email || "",
         initials: name.split(/\s+/).map((word: string) => word[0]).join("").slice(0, 2).toUpperCase(),
+        avatarUrl: profile?.avatar_url || user.user_metadata.avatar_url || user.user_metadata.picture || null,
       });
     };
     void refreshAccount();
@@ -110,7 +113,7 @@ export function AppShell() {
       <div className="neo-actions">
         <button onClick={toggleTheme} aria-label="Change color theme">{theme === "dark" ? <Sun/> : <Moon/>}</button>
         <button onClick={() => setPanel(panel === "notifications" ? null : "notifications")} aria-label="Notifications" className="bell"><Bell/><i>3</i></button>
-        <button onClick={() => setPanel(panel === "account" ? null : "account")} aria-label="Account" className="account-orb">{account?.initials || <UserRound/>}</button>
+        <button onClick={() => setPanel(panel === "account" ? null : "account")} aria-label="Account" className="account-orb">{account?.avatarUrl ? <Image src={account.avatarUrl} alt={account.name} width={39} height={39} unoptimized/> : account?.initials || <UserRound/>}</button>
       </div>
     </header>
 
@@ -118,7 +121,7 @@ export function AppShell() {
       <button className="panel-close" onClick={() => setPanel(null)}><X/></button>
       {panel === "notifications" && <><span className="panel-icon coral"><Bell/></span><h3>Notifications</h3><div className="notice"><i className="blue"/><span><b>Codegate CTF starts soon</b><small>Check the official event page for updates.</small></span></div><div className="notice"><i className="coral"/><span><b>New hackathons added</b><small>Fresh Devpost events are now live.</small></span></div><div className="notice"><i className="green"/><span><b>Sources refreshed</b><small>{live.data ? "All live feeds are up to date." : "Connecting to event feeds…"}</small></span></div></>}
       {panel === "account" && (account
-        ? <><span className="panel-avatar">{account.initials}</span><h3>{account.name}</h3><p>{account.email}</p><Link href="/account" onClick={() => setPanel(null)}>Open account <UserRound/></Link><button className="panel-signout" onClick={() => void signOut()}>Sign out <LogIn/></button></>
+        ? <><span className="panel-avatar">{account.avatarUrl ? <Image src={account.avatarUrl} alt={account.name} width={41} height={41} unoptimized/> : account.initials}</span><h3>{account.name}</h3><p>{account.email}</p><Link href="/account" onClick={() => setPanel(null)}>Open account <UserRound/></Link><button className="panel-signout" onClick={() => void signOut()}>Sign out <LogIn/></button></>
         : <><span className="panel-avatar">EB</span><h3>Welcome to Event Bazar</h3><p>Sign in to sync your events across devices, or continue as a guest.</p><Link href="/login" onClick={() => setPanel(null)}>Continue to login <LogIn/></Link></>)}
       {panel === "sources" && <><span className="panel-icon blue"><Zap/></span><h3>Live sources</h3>{Object.entries(live.data?.status ?? {}).map(([name,status]) => <div className="source-row" key={name}><i className={status.ok ? "online" : "offline"}/><b>{name}</b><span>{status.ok ? `${status.count} events` : "Unavailable"}</span></div>)}</>}
       {panel === "interested" && <><span className="panel-icon coral"><Heart/></span><h3>Interested events</h3>{interestedIds.size ? allEvents.filter(event => interestedIds.has(event.id)).map(event => <a className="interest-row" key={event.id} href={event.officialUrl ?? `/events/${event.slug}`} target={event.officialUrl ? "_blank" : undefined} rel={event.officialUrl ? "noopener noreferrer" : undefined}><span>{event.category}</span><b>{event.title}</b><small>{new Date(event.startsAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</small></a>) : <div className="panel-empty"><Heart/><b>Nothing here yet</b><p>Tap “I’m interested” on an event and it will appear here.</p></div>}</>}
