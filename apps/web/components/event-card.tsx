@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bookmark, CalendarDays, Check, Clock3, ExternalLink, Globe2, Heart, MapPin, MessageCircle, MoreHorizontal, Pencil, Send, Share2, Sparkles, Trash2, Trophy, UsersRound } from "lucide-react";
+import { Bookmark, CalendarDays, Check, Clock3, ExternalLink, Globe2, Heart, MapPin, MessageCircle, MoreHorizontal, Pencil, Send, Share2, SmilePlus, Sparkles, Trash2, Trophy, UsersRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { categoryStyle } from "@/lib/data";
 import type { EventItem } from "@/lib/types";
@@ -39,6 +39,8 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
   const [editingComment, setEditingComment] = useState<EventComment | null>(null);
   const [editBody, setEditBody] = useState("");
   const [reactions, setReactions] = useState<Record<number, ReactionSummary>>({});
+  const [eventReactions, setEventReactions] = useState({ like: 0, love: 0, wow: 0, mine: null as "like" | "love" | "wow" | null });
+  const [reactionPicker, setReactionPicker] = useState(false);
   const style = categoryStyle[event.category];
   const date = new Date(event.startsAt);
   const href = event.officialUrl ?? `/events/${event.slug}`;
@@ -88,12 +90,21 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
         summary[row.comment_id] = item;
       }
       setReactions(summary);
+      const { data: eventReactionRows } = await supabase.from("event_engagement_reactions").select("user_id,reaction").eq("event_key",event.id);
+      const eventSummary = { like: 0, love: 0, wow: 0, mine: null as "like" | "love" | "wow" | null };
+      for (const row of eventReactionRows ?? []) {
+        const reaction = row.reaction as "like" | "love" | "wow";
+        eventSummary[reaction] += 1;
+        if (row.user_id === id) eventSummary.mine = reaction;
+      }
+      setEventReactions(eventSummary);
     }
     void refreshEngagement();
     const channel = supabase.channel(`engagement:${event.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "event_interests", filter: `event_key=eq.${event.id}` }, refreshEngagement)
       .on("postgres_changes", { event: "*", schema: "public", table: "event_comments", filter: `event_key=eq.${event.id}` }, refreshEngagement)
       .on("postgres_changes", { event: "*", schema: "public", table: "event_comment_reactions" }, refreshEngagement)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_engagement_reactions", filter: `event_key=eq.${event.id}` }, refreshEngagement)
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [event.id, supabase]);
@@ -144,6 +155,12 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     if (active) await supabase.from("event_comment_reactions").delete().eq("comment_id", commentId).eq("user_id", userId).eq("reaction", reaction);
     else await supabase.from("event_comment_reactions").upsert({ comment_id: commentId, user_id: userId, reaction });
   };
+  const selectEventReaction = async (reaction: "like" | "love" | "wow") => {
+    if (!userId) { window.location.href = publicPath("/login"); return; }
+    if (eventReactions.mine === reaction) await supabase.from("event_engagement_reactions").delete().eq("event_key",event.id).eq("user_id",userId);
+    else await supabase.from("event_engagement_reactions").upsert({event_key:event.id,user_id:userId,reaction},{onConflict:"event_key,user_id"});
+    setReactionPicker(false);
+  };
 
   return <motion.article className={`event-card category-${event.category.toLowerCase()}`} initial={{ opacity: 0, y: 28, scale: .985 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: "-60px" }} whileHover={{ y: -4 }} transition={{ delay: Math.min(index * .045, .22), duration: .48, ease: "easeOut" }}>
     <div className="card-head">
@@ -181,12 +198,13 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
       <button className={commenting ? "active-blue" : ""} onClick={() => setCommenting(value => !value)}><MessageCircle /> <span>{commenting ? "Hide comments" : "Comment"}</span></button>
       <button onClick={toggleSaved} className={saved ? "active-blue" : ""}><Bookmark fill={saved ? "currentColor" : "none"} /> <span>{saved ? "Saved" : "Save"}</span></button>
       <button onClick={share}><Share2 /> <span>Share</span></button>
+      <div className="event-react-wrap"><button className={eventReactions.mine ? "active-react" : ""} onClick={() => setReactionPicker(value => !value)}><SmilePlus/><span>{eventReactions.mine ? `${eventReactions.mine} · ${eventReactions.like+eventReactions.love+eventReactions.wow}` : "React"}</span></button><AnimatePresence>{reactionPicker && <motion.div className="event-reaction-picker" initial={{opacity:0,y:8,scale:.9}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:8,scale:.9}}><button onClick={() => selectEventReaction("like")}>👍<span>Like</span></button><button onClick={() => selectEventReaction("love")}>❤️<span>Love</span></button><button onClick={() => selectEventReaction("wow")}>😮<span>Wow</span></button></motion.div>}</AnimatePresence></div>
     </div>
     <AnimatePresence>{commenting && <motion.div className="comment-panel" initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}}>
       {comments.length > 0 && <div className="comment-list">
         {comments.map(item => <div className={`comment-item ${item.parent_id ? "reply" : ""}`} key={item.id}>
           <span className="avatar blue">{item.avatarUrl ? <Image src={item.avatarUrl} alt="" width={32} height={32} unoptimized/> : item.authorName.split(/\s+/).map(part => part[0]).join("").slice(0,2).toUpperCase()}</span>
-          <div><b>{item.authorName}</b>{editingComment?.id === item.id ? <div className="comment-edit"><input value={editBody} onChange={change => setEditBody(change.target.value)}/><button type="button" onClick={saveCommentEdit}>Save</button><button type="button" onClick={() => setEditingComment(null)}>Cancel</button></div> : <p>{item.body}</p>}
+          <div><Link className="comment-author" href={`/profile?id=${encodeURIComponent(item.author_id)}`}>{item.authorName}</Link>{editingComment?.id === item.id ? <div className="comment-edit"><input value={editBody} onChange={change => setEditBody(change.target.value)}/><button type="button" onClick={saveCommentEdit}>Save</button><button type="button" onClick={() => setEditingComment(null)}>Cancel</button></div> : <p>{item.body}</p>}
             <div className="comment-controls"><button type="button" onClick={() => { setReplyingTo(item); setComment(""); }}>Reply</button>{item.author_id === userId && <><button type="button" onClick={() => {setEditingComment(item);setEditBody(item.body);}}><Pencil/> Edit</button><button type="button" className="danger" onClick={() => deleteComment(item)}><Trash2/> Delete</button></>}</div>
             <div className="comment-reactions"><button type="button" className={reactions[item.id]?.mine.includes("like") ? "active" : ""} onClick={() => toggleReaction(item.id,"like")}>👍 {reactions[item.id]?.like || ""}</button><button type="button" className={reactions[item.id]?.mine.includes("love") ? "active" : ""} onClick={() => toggleReaction(item.id,"love")}>❤️ {reactions[item.id]?.love || ""}</button><button type="button" className={reactions[item.id]?.mine.includes("helpful") ? "active" : ""} onClick={() => toggleReaction(item.id,"helpful")}>💡 {reactions[item.id]?.helpful || ""}</button></div>
           </div>

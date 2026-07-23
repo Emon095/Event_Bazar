@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Heart, Pencil, Send, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -114,7 +115,7 @@ export function EventDiscussion({ eventKey }: { eventKey: string }) {
     <div className="comment-list">
       {(showAll ? comments : comments.slice(0, 3)).map(item => <div className={`comment-item ${item.parent_id ? "reply" : ""}`} key={item.id}>
         <span className="avatar blue">{item.avatarUrl ? <Image src={item.avatarUrl} alt="" width={32} height={32} unoptimized/> : item.authorName.split(/\s+/).map(part => part[0]).join("").slice(0,2).toUpperCase()}</span>
-        <div><b>{item.authorName}</b>{editing?.id === item.id ? <div className="comment-edit"><input value={editBody} onChange={change => setEditBody(change.target.value)}/><button type="button" onClick={saveEdit}>Save</button><button type="button" onClick={() => setEditing(null)}>Cancel</button></div> : <p>{item.body}</p>}
+        <div><Link className="comment-author" href={`/profile?id=${encodeURIComponent(item.author_id)}`}>{item.authorName}</Link>{editing?.id === item.id ? <div className="comment-edit"><input value={editBody} onChange={change => setEditBody(change.target.value)}/><button type="button" onClick={saveEdit}>Save</button><button type="button" onClick={() => setEditing(null)}>Cancel</button></div> : <p>{item.body}</p>}
           <div className="comment-controls"><button type="button" onClick={() => setReplyTo(item)}>Reply</button>{item.author_id === userId && <><button type="button" onClick={() => {setEditing(item);setEditBody(item.body);}}><Pencil/> Edit</button><button type="button" className="danger" onClick={() => deleteComment(item)}><Trash2/> Delete</button></>}</div>
           <div className="comment-reactions"><button type="button" className={reactions[item.id]?.mine.includes("like") ? "active" : ""} onClick={() => toggleReaction(item.id,"like")}>👍 {reactions[item.id]?.like || ""}</button><button type="button" className={reactions[item.id]?.mine.includes("love") ? "active" : ""} onClick={() => toggleReaction(item.id,"love")}>❤️ {reactions[item.id]?.love || ""}</button><button type="button" className={reactions[item.id]?.mine.includes("helpful") ? "active" : ""} onClick={() => toggleReaction(item.id,"helpful")}>💡 {reactions[item.id]?.helpful || ""}</button></div>
         </div>
