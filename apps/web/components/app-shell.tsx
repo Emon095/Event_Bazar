@@ -113,6 +113,7 @@ export function AppShell() {
       <div className="neo-actions">
         <button onClick={toggleTheme} aria-label="Change color theme">{theme === "dark" ? <Sun/> : <Moon/>}</button>
         <button onClick={() => setPanel(panel === "notifications" ? null : "notifications")} aria-label="Notifications" className="bell"><Bell/><i>3</i></button>
+        <button onClick={() => setPanel(panel === "notifications" ? null : "notifications")} aria-label="Activity" className="web-activity"><Heart/><i/></button>
         <button onClick={() => setPanel(panel === "account" ? null : "account")} aria-label="Account" className="account-orb">{account?.avatarUrl ? <Image src={account.avatarUrl} alt={account.name} width={39} height={39} unoptimized/> : account?.initials || <UserRound/>}</button>
       </div>
     </header>
