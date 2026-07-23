@@ -50,7 +50,6 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
   const [reactions, setReactions] = useState<Record<number, ReactionSummary>>({});
   const [eventReactions, setEventReactions] = useState({ like: 0, love: 0, wow: 0, mine: null as "like" | "love" | "wow" | null });
   const [interestedProfiles, setInterestedProfiles] = useState<MiniProfile[]>([]);
-  const [reactionPeople, setReactionPeople] = useState<string[]>([]);
   const [reactionPicker, setReactionPicker] = useState(false);
   const style = categoryStyle[event.category];
   const date = new Date(event.startsAt);
@@ -115,10 +114,6 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
         if (row.user_id === id) eventSummary.mine = reaction;
       }
       setEventReactions(eventSummary);
-      const reactionIds=[...new Set((eventReactionRows??[]).map(row=>row.user_id))].slice(0,2);
-      const {data:reactors}=reactionIds.length?await supabase.from("profiles").select("id,name").in("id",reactionIds):{data:[]};
-      const reactorMap=new Map((reactors??[]).map(person=>[person.id,person.name]));
-      setReactionPeople(reactionIds.map(personId=>reactorMap.get(personId)).filter(Boolean) as string[]);
     }
     void refreshEngagement();
     const channel = supabase.channel(`engagement:${event.id}`)
@@ -214,7 +209,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
       </div>
       <div className="tags">{event.tags.map(tag => <span key={tag}>#{tag.replaceAll(" ", "")}</span>)}</div>
       <a className="event-open" href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>View official event <ExternalLink/></a>
-      <div className="engagement-summary"><div className="interest-people">{interestedProfiles.length>0&&<span className="interest-faces">{interestedProfiles.map(person=><i key={person.id}>{person.avatar_url?<Image src={person.avatar_url} alt={person.name} width={28} height={28} unoptimized/>:person.name.slice(0,1).toUpperCase()}</i>)}</span>}<span><b>{compact.format(interestCount)}</b> interested · {comments.length} comments</span></div>{eventReactions.like+eventReactions.love+eventReactions.wow>0&&<div className="event-reaction-line"><span className="reaction-icons">{eventReactions.wow>0&&<i>😮</i>}{eventReactions.like>0&&<i>👍</i>}{eventReactions.love>0&&<i>❤️</i>}</span><span>{reactionPeople.length?reactionPeople.join(", "):"Members"}{eventReactions.like+eventReactions.love+eventReactions.wow>reactionPeople.length?` and ${compact.format(eventReactions.like+eventReactions.love+eventReactions.wow-reactionPeople.length)} others`:""}</span></div>}</div>
+      <div className="engagement-summary"><div className="interest-people">{interestedProfiles.length>0&&<span className="interest-faces">{interestedProfiles.map(person=><i key={person.id}>{person.avatar_url?<Image src={person.avatar_url} alt={person.name} width={28} height={28} unoptimized/>:person.name.slice(0,1).toUpperCase()}</i>)}</span>}<span><b>{compact.format(interestCount)}</b> interested · {comments.length} comments</span></div></div>
     </div>
     <div className="card-actions">
       <motion.button whileTap={{ scale: .94 }} className={interested ? "active" : ""} onClick={toggleInterested}><Heart fill={interested ? "currentColor" : "none"} /> <span>{interested ? "Interested" : "I'm interested"}</span></motion.button>
