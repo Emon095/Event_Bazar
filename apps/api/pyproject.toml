@@ -1,0 +1,28 @@
+[project]
+name = "event-bazar-api"
+version = "0.1.0"
+description = "Event Bazar REST API"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.8,<1",
+  "uvicorn[standard]>=0.34,<1",
+  "sqlalchemy>=2.0.38,<3",
+  "psycopg[binary]>=3.2.5,<4",
+  "pydantic-settings>=2.7.1,<3",
+  "httpx>=0.28.1,<1",
+  "beautifulsoup4>=4.13,<5",
+  "python-jose[cryptography]>=3.3,<4",
+  "passlib[bcrypt]>=1.7,<2",
+  "python-multipart>=0.0.20,<1"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<9", "ruff>=0.9,<1"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

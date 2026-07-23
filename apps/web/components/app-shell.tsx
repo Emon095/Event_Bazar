@@ -1,0 +1,114 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bell, BriefcaseBusiness, Code2, Heart, Home, LogIn, Moon, Plus, Search, ShieldCheck, Sparkles, Sun, UserRound, X, Zap } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchCommunityEvents, fetchUpcoming } from "@/lib/api";
+import { events } from "@/lib/data";
+import type { Category } from "@/lib/types";
+import { EventCard } from "./event-card";
+import { Logo } from "./logo";
+
+type SortMode = "recommended" | "soonest" | "popular";
+
+export function AppShell() {
+  const [filter, setFilter] = useState<Category | "All">("All");
+  const [query, setQuery] = useState("");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [sort, setSort] = useState<SortMode>("recommended");
+  const [visible, setVisible] = useState(5);
+  const [panel, setPanel] = useState<"notifications" | "account" | "sources" | "interested" | null>(null);
+  const [interestedIds, setInterestedIds] = useState<Set<string>>(new Set());
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const live = useQuery({ queryKey: ["upcoming-events"], queryFn: fetchUpcoming, refetchInterval: 15 * 60_000, retry: 1 });
+  const community = useQuery({ queryKey: ["community-events"], queryFn: fetchCommunityEvents, refetchInterval: 60_000, retry: 1 });
+  const allEvents = useMemo(() => {
+    const liveEvents = live.data?.events.length ? live.data.events : events;
+    const communityEvents = community.data ?? [];
+    const seen = new Set(communityEvents.map(event => event.id));
+    return [...communityEvents, ...liveEvents.filter(event => !seen.has(event.id))];
+  }, [community.data, live.data?.events]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("event-bazar-theme-v2");
+    const next = saved === "dark" || saved === "light" ? saved : "dark";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+  }, []);
+  const toggleTheme = () => setTheme(current => {
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem("event-bazar-theme-v2", next);
+    return next;
+  });
+
+  const shown = useMemo(() => {
+    const result = allEvents.filter(event => (filter === "All" || event.category === filter) && `${event.title} ${event.organizer} ${event.tags.join(" ")}`.toLowerCase().includes(query.toLowerCase()));
+    if (sort === "popular") return [...result].sort((a, b) => b.interested - a.interested);
+    if (sort === "soonest") return [...result].sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt));
+    return result;
+  }, [allEvents, filter, query, sort]);
+
+  useEffect(() => { setVisible(5); }, [filter, query, sort]);
+  useEffect(() => {
+    const refresh = () => setInterestedIds(new Set(allEvents.filter(event => localStorage.getItem(`interested:${event.id}`) === "1").map(event => event.id)));
+    refresh();
+    window.addEventListener("event-bazar-interest-changed", refresh);
+    return () => window.removeEventListener("event-bazar-interest-changed", refresh);
+  }, [allEvents]);
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(([entry]) => entry.isIntersecting && setVisible(value => Math.min(value + 5, shown.length)), { rootMargin: "300px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [shown.length]);
+
+  const selectCategory = (value: Category | "All") => { setFilter(value); window.scrollTo({ top: 0, behavior: "smooth" }); };
+
+  return <div className="neo-shell">
+    <div className="ambient" aria-hidden="true"><i/><i/><i/><i/></div>
+    <header className="neo-header">
+      <Link href="/" aria-label="Event Bazar home"><Logo /></Link>
+      <label className="neo-search"><Search/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search  events, platforms, organizers…"/>{query && <button onClick={() => setQuery("")} aria-label="Clear search"><X/></button>}</label>
+      <div className="neo-actions">
+        <button onClick={toggleTheme} aria-label="Change color theme">{theme === "dark" ? <Sun/> : <Moon/>}</button>
+        <button onClick={() => setPanel(panel === "notifications" ? null : "notifications")} aria-label="Notifications" className="bell"><Bell/><i>3</i></button>
+        <button onClick={() => setPanel(panel === "account" ? null : "account")} aria-label="Account" className="account-orb">AK</button>
+      </div>
+    </header>
+
+    <AnimatePresence>{panel && <><motion.button className="panel-scrim" aria-label="Close panel" onClick={() => setPanel(null)} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}/><motion.aside className="quick-panel" initial={{opacity:0,y:-12,scale:.96}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:-8,scale:.97}}>
+      <button className="panel-close" onClick={() => setPanel(null)}><X/></button>
+      {panel === "notifications" && <><span className="panel-icon coral"><Bell/></span><h3>Notifications</h3><div className="notice"><i className="blue"/><span><b>Codegate CTF starts soon</b><small>Check the official event page for updates.</small></span></div><div className="notice"><i className="coral"/><span><b>New hackathons added</b><small>Fresh Devpost events are now live.</small></span></div><div className="notice"><i className="green"/><span><b>Sources refreshed</b><small>{live.data ? "All live feeds are up to date." : "Connecting to event feeds…"}</small></span></div></>}
+      {panel === "account" && <><span className="panel-avatar">EB</span><h3>Welcome to Event Bazar</h3><p>Sign in to sync your events across devices, or continue as a guest.</p><Link href="/login" onClick={() => setPanel(null)}>Continue to login <LogIn/></Link></>}
+      {panel === "sources" && <><span className="panel-icon blue"><Zap/></span><h3>Live sources</h3>{Object.entries(live.data?.status ?? {}).map(([name,status]) => <div className="source-row" key={name}><i className={status.ok ? "online" : "offline"}/><b>{name}</b><span>{status.ok ? `${status.count} events` : "Unavailable"}</span></div>)}</>}
+      {panel === "interested" && <><span className="panel-icon coral"><Heart/></span><h3>Interested events</h3>{interestedIds.size ? allEvents.filter(event => interestedIds.has(event.id)).map(event => <a className="interest-row" key={event.id} href={event.officialUrl ?? `/events/${event.slug}`} target={event.officialUrl ? "_blank" : undefined} rel={event.officialUrl ? "noopener noreferrer" : undefined}><span>{event.category}</span><b>{event.title}</b><small>{new Date(event.startsAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</small></a>) : <div className="panel-empty"><Heart/><b>Nothing here yet</b><p>Tap “I’m interested” on an event and it will appear here.</p></div>}</>}
+    </motion.aside></>}</AnimatePresence>
+
+    <main className="neo-main">
+      <section className="feed-heading" id="event-feed"><div><span>CURATED FOR YOU</span><h2>{filter === "All" ? "Upcoming events" : filter}</h2></div><button className={`source-pill ${live.isError ? "error" : ""}`} onClick={() => setPanel("sources")}><i/>{live.isLoading ? "Connecting" : live.isError ? "Cached mode" : "Live & updated"}</button></section>
+      <div className="sort-tabs">{([['recommended','For you'],['soonest','Starting soon'],['popular','Most popular']] as [SortMode,string][]).map(([value,label]) => <button key={value} className={sort === value ? "active" : ""} onClick={() => setSort(value)}>{label}</button>)}</div>
+
+      <div className="feed-list">{live.isLoading && <div className="source-skeleton"><i/><i/><i/></div>}{shown.length ? shown.slice(0, visible).map((event, index) => <EventCard key={event.id} event={event} index={index}/>) : <div className="empty"><Search/><h2>No events found</h2><p>Try another search or category.</p></div>}<div ref={loadMoreRef} className="load-more">{visible < shown.length && <><i/><i/><i/></>}</div></div>
+    </main>
+
+    <nav className="floating-dock expanded-dock" aria-label="Main menu">
+      <div className="dock-categories">
+        <button className={filter === "All" ? "active" : ""} onClick={() => selectCategory("All")}><Home/><span>Home</span></button>
+        <button className={filter === "CTF" ? "active" : ""} onClick={() => selectCategory("CTF")}><ShieldCheck/><span>CTF</span></button>
+        <button className={filter === "Programming" ? "active" : ""} onClick={() => selectCategory("Programming")}><Code2/><span>Code</span></button>
+        <button className={filter === "Hackathon" ? "active" : ""} onClick={() => selectCategory("Hackathon")}><Zap/><span>Hack</span></button>
+        <button className={filter === "Workshop" ? "active" : ""} onClick={() => selectCategory("Workshop")}><Sparkles/><span>Workshop</span></button>
+        <button className={filter === "Career" ? "active" : ""} onClick={() => selectCategory("Career")}><BriefcaseBusiness/><span>Career</span></button>
+      </div>
+      <div className="dock-actions">
+        <Link href="/create-event" className="dock-create"><Plus/><span>Create</span></Link>
+        <button className={panel === "interested" ? "active" : ""} onClick={() => setPanel(panel === "interested" ? null : "interested")}><Heart/><i className="dock-count">{interestedIds.size}</i><span>Saved</span></button>
+        <Link href="/account"><UserRound/><span>Account</span></Link>
+      </div>
+    </nav>
+  </div>;
+}
