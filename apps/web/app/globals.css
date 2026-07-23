@@ -176,3 +176,27 @@
 .profile-details{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}.profile-details>div,.profile-details article{display:flex;flex-direction:column;gap:8px;padding:17px;border:1px solid var(--border);border-radius:14px;background:var(--surface-2)}.profile-details b{font-size:10px}.profile-details article{grid-column:1/3}.profile-details article p{color:var(--muted);font-size:10px;line-height:1.7;margin:0}
 .account-required{text-align:center;padding:60px 20px}.account-required>svg{width:38px;color:var(--brand)}.account-required h1{font:850 28px var(--font-display)}.account-required p{color:var(--muted);font-size:10px}.account-required a{display:inline-block;margin-top:13px;padding:11px 15px;border-radius:11px;background:var(--brand);color:#fff;font-size:9px;font-weight:850}
 @media(max-width:700px){.account-shell{padding:19px}.account-profile-head{grid-template-columns:65px 1fr}.profile-picture{width:65px;height:65px;border-radius:20px}.profile-tools{grid-column:1/3}.account-profile-head h1{font-size:23px}.profile-form,.profile-details{grid-template-columns:1fr}.profile-form .wide,.profile-save,.profile-details article{grid-column:1}.profile-save{width:100%;justify-content:center}}
+
+/* Realtime engagement and threaded comments */
+.avatar.red{background:linear-gradient(135deg,#b91c1c,#ff4d5f)}
+.category.red{background:rgba(210,35,50,.9)}
+.detail-hero.category-ctf .detail-title>span{background:rgba(210,35,50,.9)}
+.comment-panel{overflow:hidden;border-top:1px solid var(--border);background:var(--surface-solid)}
+.comment-list{display:flex;flex-direction:column;gap:12px;padding:14px 16px 4px}
+.comment-item{display:grid;grid-template-columns:32px 1fr;gap:9px;align-items:start}
+.comment-item.reply{margin-left:40px;padding-left:12px;border-left:2px solid color-mix(in srgb,var(--brand) 22%,transparent)}
+.comment-item .avatar{width:32px;height:32px;border-radius:10px;font-size:8px}
+.comment-item>div{min-width:0;padding:9px 11px;border-radius:11px;background:var(--surface-2)}
+.comment-item b{font-size:9px}.comment-item p{margin:4px 0;color:var(--muted);font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.comment-item button,.see-comments{padding:0;border:0;background:transparent;color:var(--brand);font-size:8px;font-weight:800;cursor:pointer}
+.see-comments{align-self:flex-start;padding:6px 0 10px}
+.replying-to{display:flex;align-items:center;gap:4px;margin:10px 16px 0;padding:7px 10px;border-radius:8px;background:color-mix(in srgb,var(--brand) 9%,transparent);color:var(--muted);font-size:8px}
+.replying-to button{margin-left:auto;border:0;background:transparent;color:var(--muted);font-size:16px;cursor:pointer}
+.event-discussion .discussion-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.discussion-heading h2{margin-bottom:4px}.discussion-heading span{color:var(--muted);font-size:9px}
+.discussion-heading>button{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:10px;padding:9px 12px;background:var(--surface-2);color:var(--text);font-size:9px;font-weight:800;cursor:pointer}
+.discussion-heading>button.active{color:var(--pink);border-color:color-mix(in srgb,var(--pink) 35%,var(--border))}
+.discussion-heading svg{width:14px}.event-discussion .comment-list{padding:18px 0 8px}
+.event-discussion .comment-box{margin-top:12px}.no-comments{margin:5px 0 10px!important}
+.detail-actions.share-only{display:block}.detail-actions.share-only button{width:100%;background:var(--surface-2);color:var(--text)}
+@media(max-width:600px){.comment-item.reply{margin-left:20px}.discussion-heading{align-items:flex-start!important;flex-direction:column}.discussion-heading>button{width:100%;justify-content:center}.card-actions button span{display:inline}.card-actions{grid-template-columns:repeat(2,1fr)}}

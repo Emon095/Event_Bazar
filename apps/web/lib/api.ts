@@ -19,8 +19,6 @@ interface CommunityEvent {
   source: string; organizer_name: string; categories: { name: Category } | { name: Category }[];
 }
 
-function hash(value: string) { return [...value].reduce((sum, character) => sum + character.charCodeAt(0), 0); }
-
 export async function fetchUpcoming(): Promise<{ events: EventItem[]; status: Record<string, SourceStatus> }> {
   const staticFeeds = process.env.NEXT_PUBLIC_STATIC_FEEDS === "true";
   const base = process.env.NEXT_PUBLIC_API_URL ?? "https://emon095.github.io/Event_Bazar/api/v1";
@@ -40,8 +38,8 @@ export async function fetchUpcoming(): Promise<{ events: EventItem[]; status: Re
       banner: event.banner_url?.trim() || undefined, startsAt: event.starts_at,
       deadline: event.registration_deadline, prize: event.prize.slice(0, 40),
       teamSize: event.team_size, difficulty: event.difficulty, format: event.format,
-      location: event.location, interested: 40 + hash(event.id) % 2400,
-      comments: hash(event.title) % 90, tags: event.tags,
+      location: event.location, interested: 0,
+      comments: 0, tags: event.tags,
       officialUrl: event.official_url, source: event.source,
     })),
   };
@@ -60,7 +58,7 @@ export async function fetchCommunityEvents(): Promise<EventItem[]> {
     banner: event.banner_url?.trim() || undefined, startsAt: event.starts_at,
     deadline: event.registration_deadline, prize: event.prize, teamSize: event.team_size,
     difficulty: event.difficulty, format: event.format, location: event.location,
-    interested: hash(event.id) % 80, comments: 0, featured: event.is_featured,
+    interested: 0, comments: 0, featured: event.is_featured,
     tags: [category.name, event.format, "Community"], source: event.source,
     officialUrl: event.registration_url || event.website_url || undefined,
   })});
