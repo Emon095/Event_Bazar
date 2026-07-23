@@ -13,23 +13,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }
   }, []);
   useEffect(() => {
-    let active = true;
-
-    async function finishAuthentication() {
-      const currentUrl = new URL(window.location.href);
-      const code = currentUrl.searchParams.get("code");
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          localStorage.setItem("event-bazar-auth-error", error.message);
-        } else {
-          currentUrl.searchParams.delete("code");
-          window.history.replaceState({}, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
-        }
-      }
-
+    async function restoreAuthentication() {
       const { data } = await supabase.auth.getSession();
-      if (active && data.session?.user) {
+      if (data.session?.user) {
         const user = data.session.user;
         localStorage.setItem("event-bazar-user", JSON.stringify({
           id: user.id,
@@ -41,7 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }
     }
 
-    void finishAuthentication();
+    void restoreAuthentication();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         const user = session.user;
@@ -58,7 +44,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
-      active = false;
       listener.subscription.unsubscribe();
     };
   }, [supabase]);

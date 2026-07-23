@@ -1,4 +1,4 @@
-const CACHE = "event-bazar-v14";
+const CACHE = "event-bazar-v15";
 const APP_SHELL = ["/", "/manifest.json", "/brand/icon-192.png", "/brand/icon-512.png"];
 
 self.addEventListener("install", event => {
