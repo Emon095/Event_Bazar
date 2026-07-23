@@ -25,6 +25,14 @@ interface EventComment {
 type ReactionName = "like" | "love" | "helpful";
 type ReactionSummary = Record<ReactionName, number> & { mine: ReactionName[] };
 
+function SourceLogo({ source }: { source: string }) {
+  const key = source.toLowerCase().replace(/\s+/g, "");
+  if (key.includes("codeforces")) return <><i className="source-mark codeforces"><b/><b/><b/></i><span>Codeforces</span></>;
+  if (key.includes("codechef")) return <><i className="source-mark codechef">♨</i><span>CodeChef</span></>;
+  if (key.includes("ctftime")) return <><i className="source-mark ctftime">CTF</i><span>CTFtime</span></>;
+  return <><i className="source-mark community">EB</i><span>{source || "Event Bazar"}</span></>;
+}
+
 export function EventCard({ event, index }: { event: EventItem; index: number }) {
   const [supabase] = useState(() => createClient());
   const [userId, setUserId] = useState<string | null>(null);
@@ -45,6 +53,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
   const date = new Date(event.startsAt);
   const href = event.officialUrl ?? `/events/${event.slug}`;
   const external = Boolean(event.officialUrl);
+  const sourceName = event.source ?? "Event Bazar";
   useEffect(() => {
     setSaved(localStorage.getItem(`saved:${event.id}`) === "1");
     async function refreshEngagement() {
@@ -174,8 +183,9 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
       {event.featured && <span className="featured"><Sparkles size={13} /> Featured</span>}
       <span className={`category ${style.color}`}>{style.icon} {event.category}</span>
       <div className="event-visual-copy"><h2>{event.title}</h2><p>{event.description}</p></div>
-      <div className="date-tile"><b>{date.toLocaleDateString("en", { day: "2-digit" })}</b><span>{date.toLocaleDateString("en", { month: "short" }).toUpperCase()}</span></div>
-    </Link> : <div className="no-image-meta"><span className={`category ${style.color}`}>{style.icon} {event.category}</span><div className="event-orbit-art"><i/><i/><i/><Globe2/></div><span><b>{date.toLocaleDateString("en", { day: "2-digit" })}</b>{date.toLocaleDateString("en", { month: "short" }).toUpperCase()}</span><small>{event.source ?? "Community event"}</small></div>}
+      <div className="date-tile"><CalendarDays/><b>{date.toLocaleDateString("en", { day: "2-digit" })}</b><span>{date.toLocaleDateString("en", { month: "short" }).toUpperCase()}</span></div>
+      <span className="event-source-badge"><SourceLogo source={sourceName}/></span>
+    </Link> : <div className="no-image-meta"><span className={`category ${style.color}`}>{style.icon} {event.category}</span><div className="event-orbit-art"><i/><i/><i/><Globe2/></div><span className="date-tile"><CalendarDays/><b>{date.toLocaleDateString("en", { day: "2-digit" })}</b><span>{date.toLocaleDateString("en", { month: "short" }).toUpperCase()}</span></span><a className="event-source-badge" href={href} target={external?"_blank":undefined} rel={external?"noopener noreferrer":undefined} aria-label={`Open this event on ${sourceName}`}><SourceLogo source={sourceName}/></a></div>}
     <div className="card-body">
       <Link href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}><h2>{event.title}</h2></Link>
       <p className="description">{event.description}</p>
