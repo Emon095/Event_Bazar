@@ -100,6 +100,7 @@ export function AppShell() {
   return <div className="neo-shell">
     <div className="ambient" aria-hidden="true"><i/><i/><i/><i/></div>
     <header className="neo-header">
+      <Link href="/create-event" className="mobile-header-create" aria-label="Create an event"><Plus/></Link>
       <Link href="/" aria-label="Event Bazar home"><Logo /></Link>
       <label className="neo-search"><Search/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search  events, platforms, organizers…"/>{query && <button onClick={() => setQuery("")} aria-label="Clear search"><X/></button>}</label>
       <div className="neo-actions">
