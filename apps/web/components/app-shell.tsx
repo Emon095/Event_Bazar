@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, BriefcaseBusiness, Code2, Heart, Home, LogIn, Menu, MessageCircle, Moon, Plus, Search, ShieldCheck, Sparkles, Sun, UserRound, X, Zap } from "lucide-react";
+import { Bell, BriefcaseBusiness, Code2, Heart, Home, LogIn, MessageCircle, Moon, Plus, Search, ShieldCheck, Sparkles, Sun, UserRound, X, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -147,7 +147,6 @@ export function AppShell() {
       {panel === "interested" && <><span className="panel-icon coral"><Heart/></span><h3>Interested events</h3>{interestedIds.size ? allEvents.filter(event => interestedIds.has(event.id)).map(event => <a className="interest-row" key={event.id} href={event.officialUrl ?? `/events/${event.slug}`} target={event.officialUrl ? "_blank" : undefined} rel={event.officialUrl ? "noopener noreferrer" : undefined}><span>{event.category}</span><b>{event.title}</b><small>{new Date(event.startsAt).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</small></a>) : <div className="panel-empty"><Heart/><b>Nothing here yet</b><p>Tap “I’m interested” on an event and it will appear here.</p></div>}</>}
     </motion.aside></>}</AnimatePresence>
 
-    <nav className="web-side-menu" aria-label="Web menu"><Link href="/" className="side-brand"><Logo/></Link><a href="#event-feed"><Home/><span>Home</span></a><button onClick={()=>void openNotifications()}><Heart/><span>Notifications</span>{notifications.some(item=>!item.read_at)&&<i>{notifications.filter(item=>!item.read_at).length}</i>}</button><Link href="/messages"><MessageCircle/><span>Messages</span></Link><Link href="/create-event"><Plus/><span>Create</span></Link><Link href="/account" className="side-account">{account?.avatarUrl?<Image src={account.avatarUrl} alt="" width={30} height={30} unoptimized/>:<UserRound/>}<span>Profile</span></Link><button className="side-more"><Menu/><span>More</span></button></nav>
     <main className="neo-main">
       <section className="feed-heading" id="event-feed"><div><span>CURATED FOR YOU</span><h2>{filter === "All" ? "Upcoming events" : filter}</h2></div><button className={`source-pill ${live.isError ? "error" : ""}`} onClick={() => setPanel("sources")}><i/>{live.isLoading ? "Connecting" : live.isError ? "Cached mode" : "Live & updated"}</button></section>
       <div className="sort-tabs">{([['recommended','For you'],['soonest','Starting soon'],['popular','Most popular']] as [SortMode,string][]).map(([value,label]) => <button key={value} className={sort === value ? "active" : ""} onClick={() => setSort(value)}>{label}</button>)}</div>
@@ -167,6 +166,7 @@ export function AppShell() {
       <div className="dock-actions">
         <Link href="/create-event" className="dock-create"><Plus/><span>Create</span></Link>
         <Link href="/messages"><MessageCircle/><span>Messages</span></Link>
+        <button className={panel === "notifications" ? "active" : ""} onClick={() => void openNotifications()}><Bell/>{notifications.some(item=>!item.read_at)&&<i className="dock-count">{notifications.filter(item=>!item.read_at).length}</i>}<span>Alerts</span></button>
         <button className={panel === "interested" ? "active" : ""} onClick={() => setPanel(panel === "interested" ? null : "interested")}><Heart/><i className="dock-count">{interestedIds.size}</i><span>Saved</span></button>
         <Link href="/account"><UserRound/><span>Account</span></Link>
       </div>
