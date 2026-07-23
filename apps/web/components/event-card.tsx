@@ -10,7 +10,7 @@ import type { EventItem } from "@/lib/types";
 import { Countdown } from "./countdown";
 import { createClient } from "@/utils/supabase/client";
 import { cancelEventReminder, scheduleEventReminder } from "@/lib/native";
-import { publicPath } from "@/lib/site";
+import { publicPath, SITE_URL } from "@/lib/site";
 
 const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 interface EventComment {
@@ -24,6 +24,7 @@ interface EventComment {
 }
 type ReactionName = "like" | "love" | "helpful";
 type ReactionSummary = Record<ReactionName, number> & { mine: ReactionName[] };
+type MiniProfile = { id: string; name: string; avatar_url: string | null };
 
 function SourceLogo({ source }: { source: string }) {
   const key = source.toLowerCase().replace(/\s+/g, "");
@@ -48,6 +49,8 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
   const [editBody, setEditBody] = useState("");
   const [reactions, setReactions] = useState<Record<number, ReactionSummary>>({});
   const [eventReactions, setEventReactions] = useState({ like: 0, love: 0, wow: 0, mine: null as "like" | "love" | "wow" | null });
+  const [interestedProfiles, setInterestedProfiles] = useState<MiniProfile[]>([]);
+  const [reactionPeople, setReactionPeople] = useState<string[]>([]);
   const [reactionPicker, setReactionPicker] = useState(false);
   const style = categoryStyle[event.category];
   const date = new Date(event.startsAt);
@@ -57,14 +60,19 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
   useEffect(() => {
     setSaved(localStorage.getItem(`saved:${event.id}`) === "1");
     async function refreshEngagement() {
-      const [{ data: auth }, { count }, { data: rows }] = await Promise.all([
+      const [{ data: auth }, { count }, { data: interestRows }, { data: rows }] = await Promise.all([
         supabase.auth.getUser(),
         supabase.from("event_interests").select("*", { count: "exact", head: true }).eq("event_key", event.id),
+        supabase.from("event_interests").select("user_id").eq("event_key",event.id).order("created_at",{ascending:false}).limit(3),
         supabase.from("event_comments").select("id,author_id,parent_id,body,created_at").eq("event_key", event.id).order("created_at"),
       ]);
       const id = auth.user?.id ?? null;
       setUserId(id);
       setInterestCount(count ?? 0);
+      const interestIds=(interestRows??[]).map(row=>row.user_id);
+      const {data:interestPeople}=interestIds.length?await supabase.from("profiles").select("id,name,avatar_url").in("id",interestIds):{data:[]};
+      const interestMap=new Map((interestPeople??[]).map(person=>[person.id,person]));
+      setInterestedProfiles(interestIds.map(personId=>interestMap.get(personId)).filter(Boolean) as MiniProfile[]);
       if (id) {
         const [{ data: mine }, { data: saves }] = await Promise.all([
           supabase.from("event_interests").select("event_key").eq("event_key", event.id).eq("user_id", id).maybeSingle(),
@@ -107,6 +115,10 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
         if (row.user_id === id) eventSummary.mine = reaction;
       }
       setEventReactions(eventSummary);
+      const reactionIds=[...new Set((eventReactionRows??[]).map(row=>row.user_id))].slice(0,2);
+      const {data:reactors}=reactionIds.length?await supabase.from("profiles").select("id,name").in("id",reactionIds):{data:[]};
+      const reactorMap=new Map((reactors??[]).map(person=>[person.id,person.name]));
+      setReactionPeople(reactionIds.map(personId=>reactorMap.get(personId)).filter(Boolean) as string[]);
     }
     void refreshEngagement();
     const channel = supabase.channel(`engagement:${event.id}`)
@@ -145,7 +157,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     return next;
   });
   const share = async () => {
-    const url = external ? href : location.origin + href;
+    const url = `${SITE_URL}/events/${encodeURIComponent(event.slug)}/`;
     if (navigator.share) await navigator.share({ title: event.title, url }).catch(() => undefined);
     else await navigator.clipboard.writeText(url);
   };
@@ -202,7 +214,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
       </div>
       <div className="tags">{event.tags.map(tag => <span key={tag}>#{tag.replaceAll(" ", "")}</span>)}</div>
       <a className="event-open" href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>View official event <ExternalLink/></a>
-      <div className="engagement-summary"><div className="event-reaction-counts" aria-label="Event reactions"><span title="Like">👍 <b>{eventReactions.like}</b></span><span title="Love">❤️ <b>{eventReactions.love}</b></span><span title="Wow">😮 <b>{eventReactions.wow}</b></span></div><div className="social-proof"><span><b>{compact.format(interestCount)}</b> interested</span><span className="dot">•</span><span>{comments.length} comments</span></div></div>
+      <div className="engagement-summary"><div className="interest-people">{interestedProfiles.length>0&&<span className="interest-faces">{interestedProfiles.map(person=><i key={person.id}>{person.avatar_url?<Image src={person.avatar_url} alt={person.name} width={28} height={28} unoptimized/>:person.name.slice(0,1).toUpperCase()}</i>)}</span>}<span><b>{compact.format(interestCount)}</b> interested · {comments.length} comments</span></div>{eventReactions.like+eventReactions.love+eventReactions.wow>0&&<div className="event-reaction-line"><span className="reaction-icons">{eventReactions.wow>0&&<i>😮</i>}{eventReactions.like>0&&<i>👍</i>}{eventReactions.love>0&&<i>❤️</i>}</span><span>{reactionPeople.length?reactionPeople.join(", "):"Members"}{eventReactions.like+eventReactions.love+eventReactions.wow>reactionPeople.length?` and ${compact.format(eventReactions.like+eventReactions.love+eventReactions.wow-reactionPeople.length)} others`:""}</span></div>}</div>
     </div>
     <div className="card-actions">
       <motion.button whileTap={{ scale: .94 }} className={interested ? "active" : ""} onClick={toggleInterested}><Heart fill={interested ? "currentColor" : "none"} /> <span>{interested ? "Interested" : "I'm interested"}</span></motion.button>
