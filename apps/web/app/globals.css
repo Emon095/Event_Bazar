@@ -318,6 +318,37 @@
 .engagement-summary{align-items:stretch;flex-direction:column;gap:8px}.interest-people{display:flex;align-items:center;justify-content:flex-end;gap:10px;color:var(--muted);font-size:9px}.interest-people b{color:var(--text)}.interest-faces{display:flex;padding-left:7px}.interest-faces i{width:28px;height:28px;display:grid;place-items:center;overflow:hidden;margin-left:-7px;border:2px solid #193b46;border-radius:50%;background:linear-gradient(135deg,#7c64d9,#42bfc2);color:#fff;font:800 8px var(--font-display);box-shadow:0 0 0 1px rgba(123,236,218,.2)}.interest-faces img{width:100%;height:100%;object-fit:cover}.event-reaction-line{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid rgba(164,200,215,.13);border-radius:12px;background:rgba(7,20,28,.62);color:#aeb8bd;font-size:9px}.reaction-icons{display:flex;align-items:center;padding-left:5px}.reaction-icons i{width:24px;height:24px;display:grid;place-items:center;margin-left:-5px;border:2px solid #102c35;border-radius:50%;background:#26343b;font-size:13px;font-style:normal}.event-reaction-line>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:700px){.interest-people{width:100%;justify-content:space-between}.event-reaction-line{width:100%}}
 
+/* True white day mode */
+:root[data-theme="light"] body,
+:root[data-theme="light"] .neo-shell,
+:root[data-theme="light"] .messages-page,
+:root[data-theme="light"] .account-page{background:linear-gradient(145deg,#fff,#f4f8ff 48%,#eef8f3)!important;color:#102139}
+:root[data-theme="light"] .neo-shell:before{opacity:.1}
+:root[data-theme="light"] .neo-header{background:rgba(255,255,255,.9)!important;border-color:rgba(27,68,92,.12)!important}
+:root[data-theme="light"] .event-card{background:linear-gradient(135deg,rgba(255,255,255,.98),rgba(244,249,255,.96))!important;border-color:rgba(40,82,120,.18)!important;box-shadow:0 18px 48px rgba(31,67,110,.12),inset 0 1px #fff!important}
+:root[data-theme="light"] .event-card:after{opacity:.08}
+:root[data-theme="light"] .event-card .card-head,
+:root[data-theme="light"] .event-card .card-actions{background:rgba(255,255,255,.72)}
+:root[data-theme="light"] .event-card .schedule,
+:root[data-theme="light"] .event-card .fact-row,
+:root[data-theme="light"] .event-reaction-line{background:rgba(238,246,252,.9)!important;border-color:rgba(42,88,120,.13)!important}
+:root[data-theme="light"] .floating-dock,
+:root[data-theme="light"] .quick-panel,
+:root[data-theme="light"] .messages-shell,
+:root[data-theme="light"] .chat-list,
+:root[data-theme="light"] .chat-thread,
+:root[data-theme="light"] .chat-thread>header,
+:root[data-theme="light"] .chat-thread>form,
+:root[data-theme="light"] .account-shell,
+:root[data-theme="light"] .profile-details>div,
+:root[data-theme="light"] .profile-details article,
+:root[data-theme="light"] .profile-intro-card,
+:root[data-theme="light"] .account-event-post,
+:root[data-theme="light"] .account-feed-title{background:rgba(255,255,255,.91)!important;border-color:rgba(38,78,110,.14)!important;color:#102139!important}
+:root[data-theme="light"] .dock-theme-icon{display:grid;place-items:center}
+:root[data-theme="light"] .muted,
+:root[data-theme="light"] .description{color:#5e7082}
+
 /* Native performance profile: preserve the design while avoiding expensive
    paint work that causes dropped frames inside Android WebView. */
 html[data-native="true"]{scroll-behavior:auto}
@@ -351,3 +382,5 @@ html[data-native="true"] .event-source-badge{
 html[data-native="true"] .neo-header{transform:translateZ(0);will-change:transform}
 html[data-native="true"] .floating-dock{transform:translateX(-50%) translateZ(0);will-change:transform}
 html[data-native="true"] .banner img{transition:none}
+
+@media(max-width:760px){.dock-actions{grid-template-columns:repeat(6,minmax(0,1fr))}}
