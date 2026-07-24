@@ -317,3 +317,37 @@
 
 .engagement-summary{align-items:stretch;flex-direction:column;gap:8px}.interest-people{display:flex;align-items:center;justify-content:flex-end;gap:10px;color:var(--muted);font-size:9px}.interest-people b{color:var(--text)}.interest-faces{display:flex;padding-left:7px}.interest-faces i{width:28px;height:28px;display:grid;place-items:center;overflow:hidden;margin-left:-7px;border:2px solid #193b46;border-radius:50%;background:linear-gradient(135deg,#7c64d9,#42bfc2);color:#fff;font:800 8px var(--font-display);box-shadow:0 0 0 1px rgba(123,236,218,.2)}.interest-faces img{width:100%;height:100%;object-fit:cover}.event-reaction-line{display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid rgba(164,200,215,.13);border-radius:12px;background:rgba(7,20,28,.62);color:#aeb8bd;font-size:9px}.reaction-icons{display:flex;align-items:center;padding-left:5px}.reaction-icons i{width:24px;height:24px;display:grid;place-items:center;margin-left:-5px;border:2px solid #102c35;border-radius:50%;background:#26343b;font-size:13px;font-style:normal}.event-reaction-line>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:700px){.interest-people{width:100%;justify-content:space-between}.event-reaction-line{width:100%}}
+
+/* Native performance profile: preserve the design while avoiding expensive
+   paint work that causes dropped frames inside Android WebView. */
+html[data-native="true"]{scroll-behavior:auto}
+html[data-native="true"] body{overscroll-behavior-y:none;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+html[data-native="true"] .ambient{display:none}
+html[data-native="true"] .neo-shell:before,
+html[data-native="true"] .neo-shell:after{display:none!important}
+html[data-native="true"] .event-card,
+html[data-native="true"] .event-card:after,
+html[data-native="true"] .event-orbit-art i,
+html[data-native="true"] .source-pill i,
+html[data-native="true"] .load-more i{animation:none!important}
+html[data-native="true"] .event-card{
+  content-visibility:auto;
+  contain-intrinsic-size:760px;
+  contain:layout paint style;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.05)!important
+}
+html[data-native="true"] .neo-header,
+html[data-native="true"] .floating-dock,
+html[data-native="true"] .quick-panel,
+html[data-native="true"] .category-ribbon,
+html[data-native="true"] .featured,
+html[data-native="true"] .date-tile,
+html[data-native="true"] .event-source-badge{
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important
+}
+html[data-native="true"] .neo-header,
+html[data-native="true"] .floating-dock{transform:translateZ(0);will-change:transform}
+html[data-native="true"] .banner img{transition:none}

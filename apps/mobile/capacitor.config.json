@@ -3,7 +3,7 @@
   "appName": "Event Bazar",
   "webDir": "www",
   "server": {
-    "url": "https://emon095.github.io/Event_Bazar/?nativeBuild=4",
+    "url": "https://emon095.github.io/Event_Bazar/?nativeBuild=5",
     "androidScheme": "https",
     "allowNavigation": [
       "emon095.github.io",

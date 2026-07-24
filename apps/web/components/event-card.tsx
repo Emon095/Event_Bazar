@@ -9,7 +9,7 @@ import { categoryStyle } from "@/lib/data";
 import type { EventItem } from "@/lib/types";
 import { Countdown } from "./countdown";
 import { createClient } from "@/utils/supabase/client";
-import { cancelEventReminder, scheduleEventReminder } from "@/lib/native";
+import { cancelEventReminder, isNativeApp, scheduleEventReminder } from "@/lib/native";
 import { publicPath, SITE_URL } from "@/lib/site";
 
 const compact = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
@@ -35,6 +35,7 @@ function SourceLogo({ source }: { source: string }) {
 }
 
 export function EventCard({ event, index }: { event: EventItem; index: number }) {
+  const native = isNativeApp();
   const [supabase] = useState(() => createClient());
   const [userId, setUserId] = useState<string | null>(null);
   const [interested, setInterested] = useState(false);
@@ -178,7 +179,7 @@ export function EventCard({ event, index }: { event: EventItem; index: number })
     setReactionPicker(false);
   };
 
-  return <motion.article id={`event-${event.slug}`} className={`event-card ${event.banner ? "has-banner" : "no-banner"} category-${event.category.toLowerCase()}`} initial={{ opacity: 0, y: 28, scale: .985 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, margin: "-60px" }} whileHover={{ y: -4 }} transition={{ delay: Math.min(index * .045, .22), duration: .48, ease: "easeOut" }}>
+  return <motion.article id={`event-${event.slug}`} className={`event-card ${event.banner ? "has-banner" : "no-banner"} category-${event.category.toLowerCase()}`} initial={native ? false : { opacity: 0, y: 28, scale: .985 }} whileInView={native ? undefined : { opacity: 1, y: 0, scale: 1 }} viewport={native ? undefined : { once: true, margin: "-60px" }} whileHover={native ? undefined : { y: -4 }} transition={native ? { duration: 0 } : { delay: Math.min(index * .045, .22), duration: .48, ease: "easeOut" }}>
     <div className="card-head">
       <div className={`avatar ${style.color}`}>{event.organizerInitials}</div>
       <div className="organizer"><strong>{event.organizer}</strong><span>{event.location} · <Globe2 size={12} /></span></div>
