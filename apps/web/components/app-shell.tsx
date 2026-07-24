@@ -181,6 +181,7 @@ export function AppShell() {
       <div className="dock-actions">
         <Link href="/create-event" className="dock-create"><Plus/><span>Create</span></Link>
         <Link href="/messages"><MessageCircle/><span>Messages</span></Link>
+        <button onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to day mode" : "Switch to night mode"}><span className="dock-theme-icon">{theme === "dark" ? <Sun/> : <Moon/>}</span><span>{theme === "dark" ? "Day" : "Night"}</span></button>
         <button className={panel === "notifications" ? "active" : ""} onClick={() => void openNotifications()}><Bell/>{notifications.some(item=>!item.read_at)&&<i className="dock-count">{notifications.filter(item=>!item.read_at).length}</i>}<span>Alerts</span></button>
         <button className={panel === "interested" ? "active" : ""} onClick={() => setPanel(panel === "interested" ? null : "interested")}><Heart/><i className="dock-count">{interestedIds.size}</i><span>Saved</span></button>
         <Link href="/account"><UserRound/><span>Account</span></Link>
